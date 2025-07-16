@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
+  import { onMount, onDestroy } from 'svelte';
+  import { browser } from '$app/environment';
 
   let canvas: HTMLCanvasElement;
   let width: number = 0;
@@ -9,14 +10,23 @@
     return canvas;
   }
 
-  onMount(() => {
-    width = window.innerWidth;
-    height = window.innerHeight;
+  const updateCanvasDimensions = () => {
+    if (browser) {
+      const dpr = window.devicePixelRatio || 1;
+      width = window.innerWidth * dpr;
+      height = window.innerHeight * dpr;
+    }
+  }
 
-    const frame = () => {
-      requestAnimationFrame(frame);
-    };
-    frame();
+  onMount(() => {
+    updateCanvasDimensions();
+
+    window.addEventListener('resize', updateCanvasDimensions);
+  });
+
+  onDestroy(() => {
+    if (browser)
+      window.removeEventListener('resize', updateCanvasDimensions);
   });
 </script>
 

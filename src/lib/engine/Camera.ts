@@ -8,8 +8,8 @@ export class Camera {
   // Convert world coordinates to screen space
   worldToScreen(x: number, y: number): { x: number; y: number } {
     return {
-      x: (x - this.x) * this.zoom + this.viewportWidth / 2,
-      y: (y - this.y) * this.zoom + this.viewportHeight / 2,
+      x: Math.round((x - this.x) * this.zoom + this.viewportWidth / 2),
+      y: Math.round((y - this.y) * this.zoom + this.viewportHeight / 2),
     };
   }
 
