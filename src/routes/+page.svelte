@@ -1,5 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import { goto } from '$app/navigation';
+	import { browser } from '$app/environment';
 
   import deskImg from '$lib/assets/desk.png'
   import pcImg from '$lib/assets/pc.png'
@@ -15,13 +17,14 @@
   import { Room } from '$lib/engine/Room';
 	import { RoomObject } from '$lib/engine/RoomObject';
   import { Sprite } from '$lib/engine/Sprite';
-	import { browser } from '$app/environment';
+	import { Transition } from '$lib/engine/Transition';
 
   let mainCanvas: MainCanvas;
   let ctx: CanvasRenderingContext2D | null = null;
   let camera: Camera;
   let room: Room;
   let globalScale: number = 0;
+
   let borderDimensions: {
     width: number,
     height: number
@@ -29,10 +32,35 @@
     width: 0,
     height: 0
   };
-
   let border: RoomObject | undefined = undefined;
 
-  let lines: {
+  let desk: RoomObject | undefined = undefined;
+
+  let projectionDiv: {
+    style: string,
+    x: number,
+    y: number,
+    width: number,
+    height: number
+  } = {
+    style: 'display: none',
+    x: 0,
+    y: 0,
+    width: 0,
+    height: 0
+  };
+
+  let projectionLines: {
+    left: Line | undefined,
+    middle: Line | undefined,
+    right: Line | undefined
+  } = {
+    left: undefined,
+    middle: undefined,
+    right: undefined,
+  };
+
+  let depthLines: {
     topLeft: Line | undefined;
     topRight: Line | undefined;
     bottomRight: Line | undefined;
@@ -74,13 +102,13 @@
 
       setGlobalScale();
 
-      border = new RoomObject(0, 0, new Sprite(borderImg, globalScale));
-      const desk = new RoomObject(-32, 81, new Sprite(deskImg, globalScale));
-      const pc = new RoomObject(-26, 63, new Sprite(pcImg, globalScale));
-      const pcShading = new RoomObject(-26, 83, new Sprite(pcShadingImg, globalScale));
-      const turntableShelf = new RoomObject(90, 90, new Sprite(turntableShelfImg, globalScale));
-      const window = new RoomObject(-90, 0, new Sprite(windowImg, globalScale));
-      const wallObjects = new RoomObject(8, 0, new Sprite(wallObjectsImg, globalScale));
+      border = new RoomObject(0, -30, new Sprite(borderImg, globalScale));
+      desk = new RoomObject(-32, 67, new Sprite(deskImg, globalScale));
+      const pc = new RoomObject(-26, 48, new Sprite(pcImg, globalScale));
+      const pcShading = new RoomObject(-26, 69, new Sprite(pcShadingImg, globalScale));
+      const turntableShelf = new RoomObject(95, 75, new Sprite(turntableShelfImg, globalScale));
+      const window = new RoomObject(-102, -10, new Sprite(windowImg, globalScale));
+      const wallObjects = new RoomObject(-8, -12, new Sprite(wallObjectsImg, globalScale));
 
       await Promise.all([
         border.sprite?.awaitLoad(),
@@ -88,6 +116,8 @@
         pcShading.sprite?.awaitLoad(),
         turntableShelf.sprite?.awaitLoad(),
       ]);
+
+      updateProjectionDivPos();
 
       sceneContainer.add(border);
       sceneContainer.add(desk);
@@ -97,63 +127,30 @@
       sceneContainer.add(window);
       sceneContainer.add(wallObjects);
 
+      if (desk.sprite) {
+        projectionLines.left = new Line();
+        projectionLines.middle = new Line();
+        projectionLines.right = new Line();
+
+        updateProjectionLinesPos();
+
+        sceneContainer.add(projectionLines.left);
+        sceneContainer.add(projectionLines.middle);
+        sceneContainer.add(projectionLines.right);
+      }
+
       if (border.sprite) {
-        lines.topLeft = new Line(
-          {
-            x: border.x - border.sprite.width * border.sprite.scale / 2,
-            y: border.y - border.sprite.height * border.sprite.scale / 2
-          },
-          {
-            x: -camera.viewportWidth / 2,
-            y: -camera.viewportHeight / 2
-          },
-          'white',
-          globalScale
-        );
+        depthLines.topLeft = new Line();
+        depthLines.topRight = new Line();
+        depthLines.bottomRight = new Line();
+        depthLines.bottomLeft = new Line();
 
-        lines.topRight = new Line(
-          {
-            x: border.x + border.sprite.width * border.sprite.scale / 2,
-            y: border.y + border.sprite.height * border.sprite.scale / 2
-          },
-          {
-            x: camera.viewportWidth * border.sprite.scale / 2,
-            y: camera.viewportHeight * border.sprite.scale / 2
-          },
-          'white',
-          globalScale
-        );
+        updateDepthLinesPos();
 
-        lines.bottomRight = new Line(
-          {
-            x: border.x + border.sprite.width * border.sprite.scale / 2,
-            y: border.y - border.sprite.height * border.sprite.scale / 2
-          },
-          {
-            x: camera.viewportWidth * border.sprite.scale / 2,
-            y: -camera.viewportHeight * border.sprite.scale / 2
-          },
-          'white',
-          globalScale
-        );
-
-        lines.bottomLeft = new Line(
-          {
-            x: -border.x - border.sprite.width * border.sprite.scale / 2,
-            y: -border.y + border.sprite.height * border.sprite.scale / 2
-          },
-          {
-            x: -camera.viewportWidth / 2,
-            y: camera.viewportHeight / 2
-          },
-          'white',
-          globalScale
-        );
-
-        if (lines.topLeft) sceneContainer.add(lines.topLeft);
-        if (lines.topRight) sceneContainer.add(lines.topRight);
-        if (lines.bottomRight) sceneContainer.add(lines.bottomRight);
-        if (lines.bottomLeft) sceneContainer.add(lines.bottomLeft);
+        sceneContainer.add(depthLines.topLeft);
+        sceneContainer.add(depthLines.topRight);
+        sceneContainer.add(depthLines.bottomRight);
+        sceneContainer.add(depthLines.bottomLeft);
       }
     };
 
@@ -177,6 +174,124 @@
       }
     };
 
+    const updateProjectionDivPos = () => {
+      if (!border || !border.sprite) return;
+
+      const yOffset = 30 * (globalScale - 1);
+
+      projectionDiv.x = border.x + 36 * globalScale;
+      projectionDiv.y = border.y - 90 * globalScale - yOffset;
+
+      const screenPos = camera.worldToScreen(projectionDiv.x, projectionDiv.y);
+
+      projectionDiv.width = 156 * globalScale;
+      projectionDiv.height = 106 * globalScale;
+
+      projectionDiv.style = `
+        position: absolute;
+        left: ${screenPos.x}px;
+        top: ${screenPos.y}px;
+        width: ${projectionDiv.width}px;
+        height: ${projectionDiv.height}px;
+        padding: ${0 * globalScale}rem;
+        background: var(--fg-color);
+        color: var(--bg-color);
+        line-height: 0.5;
+        font-size: ${1.5 * globalScale}em;
+        padding: ${0.25 * globalScale}em;
+      `;
+    };
+
+    const updateProjectionLinesPos = () => {
+      if (desk && desk.sprite) {
+        const fromPoint = {
+          x: (desk.x + 46) * globalScale,
+          y: (desk.y - 10) * globalScale
+        };
+
+        if (projectionLines.left) {
+          projectionLines.left.from = fromPoint;
+          projectionLines.left.to = {
+            x: projectionDiv.x,
+            y: projectionDiv.y
+          };
+          projectionLines.left.width = globalScale;
+        }
+
+        if (projectionLines.middle) {
+          projectionLines.middle.from = fromPoint;
+          projectionLines.middle.to = {
+            x: projectionDiv.x,
+            y: projectionDiv.y + projectionDiv.height
+          };
+          projectionLines.middle.width = globalScale;
+        }
+
+        if (projectionLines.right) {
+          projectionLines.right.from = fromPoint;
+          projectionLines.right.to = {
+            x: projectionDiv.x + projectionDiv.width,
+            y: projectionDiv.y + projectionDiv.height
+          };
+          projectionLines.right.width = globalScale;
+        }
+      }
+    };
+
+    const updateDepthLinesPos = () => {
+      if (border && border.sprite) {
+        const yOffset = 30 * (globalScale - 1);
+
+        if (depthLines.topLeft) {
+          depthLines.topLeft.from = {
+            x: border.x - border.sprite.width * border.sprite.scale / 2,
+            y: border.y - border.sprite.height * border.sprite.scale / 2 - yOffset
+          };
+          depthLines.topLeft.to = {
+            x: -camera.viewportWidth / 2,
+            y: -camera.viewportHeight / 2
+          };
+          depthLines.topLeft.width = globalScale;
+        }
+
+        if (depthLines.topRight) {
+          depthLines.topRight.from = {
+            x: border.x + border.sprite.width * border.sprite.scale / 2,
+            y: border.y + border.sprite.height * border.sprite.scale / 2 - yOffset
+          };
+          depthLines.topRight.to = {
+            x: camera.viewportWidth / 2,
+            y: camera.viewportHeight / 2
+          };
+          depthLines.topRight.width = globalScale;
+        }
+
+        if (depthLines.bottomRight) {
+          depthLines.bottomRight.from = {
+            x: border.x + border.sprite.width * border.sprite.scale / 2,
+            y: border.y - border.sprite.height * border.sprite.scale / 2 - yOffset
+          };
+          depthLines.bottomRight.to = {
+            x: camera.viewportWidth / 2,
+            y: -camera.viewportHeight / 2
+          };
+          depthLines.bottomRight.width = globalScale;
+        }
+
+        if (depthLines.bottomLeft) {
+          depthLines.bottomLeft.from = {
+            x: -border.x - border.sprite.width * border.sprite.scale / 2,
+            y: border.y + border.sprite.height * border.sprite.scale / 2 - yOffset
+          };
+          depthLines.bottomLeft.to = {
+            x: -camera.viewportWidth / 2,
+            y: camera.viewportHeight / 2
+          };
+          depthLines.bottomLeft.width = globalScale;
+        }
+      }
+    };
+
     const handleResize = () => {
       if (!ctx) throw new Error("MainCanvas context is null");
 
@@ -185,56 +300,16 @@
 
       setGlobalScale();
 
-      room.getRootContainer().updateGlobalScale(globalScale);
+      room.updateGlobalScale(globalScale);
 
       if (border && border.sprite) {
-        if (lines.topLeft) {
-          lines.topLeft.from = {
-            x: border.x - border.sprite.width * border.sprite.scale / 2,
-            y: border.y - border.sprite.height * border.sprite.scale / 2
-          };
-          lines.topLeft.to = {
-            x: -camera.viewportWidth / 2,
-            y: -camera.viewportHeight / 2
-          };
-          lines.topLeft.width = globalScale;
-        }
+        updateProjectionDivPos();
 
-        if (lines.topRight) {
-          lines.topRight.from = {
-            x: border.x + border.sprite.width * border.sprite.scale / 2,
-            y: border.y + border.sprite.height * border.sprite.scale / 2
-          };
-          lines.topRight.to = {
-            x: camera.viewportWidth / 2,
-            y: camera.viewportHeight / 2
-          };
-          lines.topRight.width = globalScale;
-        }
+        updateDepthLinesPos(); 
+      }
 
-        if (lines.bottomRight) {
-          lines.bottomRight.from = {
-            x: border.x + border.sprite.width * border.sprite.scale / 2,
-            y: border.y - border.sprite.height * border.sprite.scale / 2
-          };
-          lines.bottomRight.to = {
-            x: camera.viewportWidth / 2,
-            y: -camera.viewportHeight / 2
-          };
-          lines.bottomRight.width = globalScale;
-        }
-
-        if (lines.bottomLeft) {
-          lines.bottomLeft.from = {
-            x: -border.x - border.sprite.width * border.sprite.scale / 2,
-            y: -border.y + border.sprite.height * border.sprite.scale / 2
-          };
-          lines.bottomLeft.to = {
-            x: -camera.viewportWidth / 2,
-            y: camera.viewportHeight / 2
-          };
-          lines.bottomLeft.width = globalScale;
-        }
+      if (desk && desk.sprite) {
+        updateProjectionLinesPos();
       }
     };
     window.addEventListener('resize', handleResize);
@@ -246,6 +321,7 @@
 
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+      room.update(camera);
       room.draw(ctx, camera);
 
       requestAnimationFrame(loop);
@@ -256,6 +332,28 @@
       window.removeEventListener('resize', handleResize);
     };
   });
+
+  const onAboutMeClick = () => {
+    room.beginTransition(
+      new Transition('intoRight', globalScale, camera, () => {
+        goto('/about-me');
+      })
+    );
+  };
 </script>
 
-<MainCanvas bind:this={mainCanvas}/>
+<div class="relative w-full h-full">
+  <div
+    style={projectionDiv.style}
+  >
+    <div class="relative z-10 grid grid-rows-3 gap-3 pl-2 h-full w-full">
+      <button class="text-left cursor-pointer" onclick={onAboutMeClick}>About me</button>
+      <button class="text-left">Projects</button>
+      <button class="text-left">What's this?</button>
+    </div>
+  </div>
+
+  <div class="absolute inset-0 z-20 pointer-events-none">
+    <MainCanvas bind:this={mainCanvas}/>
+  </div>
+</div>

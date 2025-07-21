@@ -8,15 +8,12 @@ export class Line implements IDrawable {
   // We set x and y to the 'from' point for IDrawable compatibility
   public x: number;
   public y: number;
+  public from: { x: number, y: number } = { x: 0, y: 0 };
+  public to: { x: number, y: number } = { x: 0, y: 0 };
 
-  constructor(
-    public from: Point,
-    public to: Point,
-    public color: string = 'white',
-    public width: number = 1
-  ) {
-    this.x = from.x; // Use 'from' for IDrawable's x, y
-    this.y = from.y;
+  constructor(public color: string = 'white', public width: number = 1) {
+    this.x = 0;
+    this.y = 0;
   }
 
   draw(ctx: CanvasRenderingContext2D, camera: Camera, parentWorldX: number, parentWorldY: number) {

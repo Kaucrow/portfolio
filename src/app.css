@@ -1,9 +1,29 @@
 @import 'tailwindcss';
 
+@font-face {
+  font-family: 'Monogram';
+  src: url('/fonts/monogram.ttf') format('truetype');
+  font-display: swap;
+}
+
+:root {
+  --font-normal: 'Monogram';
+  --bg-color: #000000;
+  --fg-color: #fff1e8;
+}
+
+body {
+  font-family: 'Monogram', sans-serif;
+}
+
 html {
-  background-color: black;
+  background-color: var(--bg-color);
 }
 
 canvas {
+  image-rendering: pixelated;
+}
+
+.pixelated {
   image-rendering: pixelated;
 }
