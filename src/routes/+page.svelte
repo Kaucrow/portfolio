@@ -12,6 +12,8 @@
   import wallObjectsImg from '$lib/assets/wall_objects.png'
 
   import MainCanvas from '$lib/components/MainCanvas.svelte';
+  import DialogueBox from '$lib/components/DialogueBox.svelte';
+
   import { Line } from '$lib/engine/Line';
   import { Camera } from '$lib/engine/Camera';
   import { Room } from '$lib/engine/Room';
@@ -73,6 +75,23 @@
     bottomLeft: undefined
   };
 
+  let dialogueBox: {
+    instance: DialogueBox | null,
+    style: string,
+    dialogues: any,
+    currentDialogueId: string,
+  } = {
+    instance: null,
+    style: "",
+    dialogues: {
+      intro: [
+        "Hello! this is some longer text here just for testing :)",
+        "Welcome to my portfolio! owo"
+      ]
+    },
+    currentDialogueId: 'intro',
+  };
+
   onMount(() => {
     const canvas = mainCanvas.getCanvas();
     ctx = canvas.getContext('2d');
@@ -119,6 +138,7 @@
       ]);
 
       updateProjectionDivPos();
+      updateDialogueBoxPos();
 
       sceneContainer.add(border);
       sceneContainer.add(desk);
@@ -173,6 +193,23 @@
       if (globalScale <= 0) {
         globalScale = 1;
       }
+    };
+
+    const updateDialogueBoxPos = () => {
+      if (!desk || !desk.sprite) return;
+
+      const xOffset = 32 * (globalScale - 1);
+      const yOffset = 70 * (globalScale - 1);
+
+      const x = desk.x - 150 * globalScale - xOffset;
+      const y = desk.y + 46 * globalScale + yOffset;
+
+      const screenPos = camera.worldToScreen(x, y);
+
+      dialogueBox.style = `
+        left: ${screenPos.x}px;
+        top: ${screenPos.y}px;
+      `
     };
 
     const updateProjectionDivPos = () => {
@@ -310,6 +347,8 @@
       }
 
       if (desk && desk.sprite) {
+        updateDialogueBoxPos();
+
         updateProjectionLinesPos();
       }
     };
@@ -348,18 +387,28 @@
   };
 </script>
 
-<div class="relative w-full h-full">
-  <div
-    style={projectionDiv.style}
-  >
-    <div class="relative z-10 grid grid-rows-3 gap-3 pl-2 h-full w-full">
-      <button class="text-left cursor-pointer" onclick={onAboutMeClick}>About me</button>
-      <button class="text-left">Projects</button>
-      <button class="text-left">What's this?</button>
-    </div>
+<div
+  style={projectionDiv.style}
+>
+  <div class="relative z-10 grid grid-rows-3 gap-3 pl-2 h-full w-full">
+    <button class="text-left cursor-pointer" onclick={onAboutMeClick}>About me</button>
+    <button class="text-left">Projects</button>
+    <button class="text-left">What's this?</button>
   </div>
+</div>
 
-  <div class="absolute inset-0 z-20 pointer-events-none">
-    <MainCanvas bind:this={mainCanvas}/>
-  </div>
+<DialogueBox
+  bind:this={dialogueBox.instance}
+  dialogues={dialogueBox.dialogues}
+  dialogueId={dialogueBox.currentDialogueId}
+  speed={20}
+  borderWidth={globalScale}
+  padding="{5 * globalScale}px"
+  width={200 * globalScale}
+  fontSize="{1 * globalScale}em"
+  style={dialogueBox.style}
+/>
+
+<div class="absolute inset-0 z-20 pointer-events-none">
+  <MainCanvas bind:this={mainCanvas}/>
 </div>
