@@ -222,6 +222,7 @@
 
   function skipLine() {
     if (typeTimeoutId) clearTimeout(typeTimeoutId);
+    downArrowTimeoutId = setTimeout(animateDownArrow, 500);
     displayedText = currentLineText;
     charIndex = currentLineText.length;
     isTyping = false;

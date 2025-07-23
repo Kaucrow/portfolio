@@ -3,13 +3,12 @@
   import { goto } from '$app/navigation';
 	import { browser } from '$app/environment';
 
-  import deskImg from '$lib/assets/desk.png'
-  import pcImg from '$lib/assets/pc.png'
-  import pcShadingImg from '$lib/assets/pc_shading.png'
-  import borderImg from '$lib/assets/room_border.png'
-  import turntableShelfImg from '$lib/assets/turntable_shelf.png'
-  import windowImg from '$lib/assets/window.png'
-  import wallObjectsImg from '$lib/assets/wall_objects.png'
+  import deskImg from '$lib/assets/desk.png';
+  import pcImg from '$lib/assets/pc.png';
+  import pcShadingImg from '$lib/assets/pc_shading.png';
+  import borderImg from '$lib/assets/room_border.png';
+  import plantKaucrowImg from '$lib/assets/plant_kaucrow.png';
+  import staticObjectsImg from '$lib/assets/static_objects.png';
 
   import MainCanvas from '$lib/components/MainCanvas.svelte';
   import DialogueBox from '$lib/components/DialogueBox.svelte';
@@ -85,8 +84,8 @@
     style: "",
     dialogues: {
       intro: [
-        "Hello! this is some longer text here just for testing :)",
-        "Welcome to my portfolio! owo"
+        "*Craw!* (Hello!)",
+        "*Craww!* (Welcome to my portfolio! owo)"
       ]
     },
     currentDialogueId: 'intro',
@@ -123,18 +122,18 @@
       setGlobalScale();
 
       border = new RoomObject(0, -30, new Sprite(borderImg, globalScale));
-      desk = new RoomObject(-32, 67, new Sprite(deskImg, globalScale));
-      const pc = new RoomObject(-26, 48, new Sprite(pcImg, globalScale));
-      const pcShading = new RoomObject(-26, 69, new Sprite(pcShadingImg, globalScale));
-      const turntableShelf = new RoomObject(95, 75, new Sprite(turntableShelfImg, globalScale));
-      const window = new RoomObject(-102, -10, new Sprite(windowImg, globalScale));
-      const wallObjects = new RoomObject(-8, -12, new Sprite(wallObjectsImg, globalScale));
+      desk = new RoomObject(-33, 52, new Sprite(deskImg, globalScale));
+      const pc = new RoomObject(-27, 34, new Sprite(pcImg, globalScale));
+      const pcShading = new RoomObject(-27, 54, new Sprite(pcShadingImg, globalScale));
+      const plantKaucrow = new RoomObject(62, 129, new Sprite(plantKaucrowImg, globalScale));
+      const staticObjects = new RoomObject(-11, -2, new Sprite(staticObjectsImg, globalScale));
 
       await Promise.all([
         border.sprite?.awaitLoad(),
         desk.sprite?.awaitLoad(),
         pcShading.sprite?.awaitLoad(),
-        turntableShelf.sprite?.awaitLoad(),
+        plantKaucrow.sprite?.awaitLoad(),
+        staticObjects.sprite?.awaitLoad()
       ]);
 
       updateProjectionDivPos();
@@ -144,9 +143,8 @@
       sceneContainer.add(desk);
       sceneContainer.add(pc);
       sceneContainer.add(pcShading);
-      sceneContainer.add(turntableShelf);
-      sceneContainer.add(window);
-      sceneContainer.add(wallObjects);
+      sceneContainer.add(plantKaucrow);
+      sceneContainer.add(staticObjects);
 
       if (desk.sprite) {
         projectionLines.left = new Line();
@@ -217,13 +215,13 @@
 
       const yOffset = 30 * (globalScale - 1);
 
-      projectionDiv.x = border.x + 36 * globalScale;
-      projectionDiv.y = border.y - 90 * globalScale - yOffset;
+      projectionDiv.x = border.x + 44 * globalScale;
+      projectionDiv.y = border.y - 94 * globalScale - yOffset;
 
       const screenPos = camera.worldToScreen(projectionDiv.x, projectionDiv.y);
 
       projectionDiv.width = 156 * globalScale;
-      projectionDiv.height = 106 * globalScale;
+      projectionDiv.height = 98 * globalScale;
 
       projectionDiv.style = `
         position: absolute;
