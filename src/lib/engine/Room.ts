@@ -29,8 +29,8 @@ export class Room {
     });
   }
 
-  update(camera: Camera) {
-    this.transitions.forEach(transition => transition.update(camera));
+  update(camera: Camera, deltaTime: number) {
+    this.transitions.forEach(transition => transition.update(camera, deltaTime));
   }
 
   draw(ctx: CanvasRenderingContext2D, camera: Camera) {

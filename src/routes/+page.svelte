@@ -24,6 +24,7 @@
   let camera: Camera;
   let room: Room;
   let globalScale: number = 0;
+  let lastTime: DOMHighResTimeStamp = 0;
 
   let borderDimensions: {
     width: number,
@@ -314,18 +315,23 @@
     };
     window.addEventListener('resize', handleResize);
 
-    const loop = () => {
+    const loop = (currentTime: DOMHighResTimeStamp) => {
       if (!ctx) throw new Error("MainCanvas context is null");
+
+      const deltaTime = (currentTime - lastTime) / 1000;
+      lastTime = currentTime;
 
       ctx.imageSmoothingEnabled = false;
 
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      room.update(camera);
+      room.update(camera, deltaTime);
       room.draw(ctx, camera);
 
       requestAnimationFrame(loop);
     };
+
+    lastTime = performance.now();
     requestAnimationFrame(loop);
 
     return () => {

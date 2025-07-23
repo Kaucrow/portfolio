@@ -98,11 +98,13 @@ export class Transition {
     }
   }
 
-  update(camera: Camera) {
+  update(camera: Camera, deltaTime: number) {
     // Ensure both sprites are loaded before updating
     if (this.paused || !this.ditherHeavySpr.isLoaded || !this.ditherLightSpr.isLoaded) return;
 
-    const adjustedScrollSpeed = Math.round(this.scrollSpeed * (camera.viewportWidth / 1280));
+    const adjustedScrollSpeed = Math.round(
+      this.scrollSpeed * this.ditherHeavySpr.scale
+    );
 
     switch (this.dir) {
       case 'intoRight':
@@ -207,7 +209,6 @@ export class Transition {
     // Draw the dither pattern
     ctx.save();
     ctx.translate(scrollXInt, 0); // Translate the canvas context by the current scroll position
-
     // Fill exactly the area we want the pattern to appear in
     ctx.fillStyle = this.ditherPattern;
     ctx.fillRect(0, 0, combinedWidthInt, camera.viewportHeight);

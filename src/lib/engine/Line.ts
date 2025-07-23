@@ -17,6 +17,8 @@ export class Line implements IDrawable {
   }
 
   draw(ctx: CanvasRenderingContext2D, camera: Camera, parentWorldX: number, parentWorldY: number) {
+    ctx.imageSmoothingEnabled = false;
+
     if (this.width === 1) {
       this.drawBresenhamLine(ctx, camera, parentWorldX, parentWorldY);
     } else {
@@ -30,11 +32,16 @@ export class Line implements IDrawable {
       const fromScreenPos = camera.worldToScreen(fromAbsoluteX, fromAbsoluteY);
       const toScreenPos = camera.worldToScreen(toAbsoluteX, toAbsoluteY);
 
-      ctx.moveTo(fromScreenPos.x, fromScreenPos.y);
-      ctx.lineTo(toScreenPos.x, toScreenPos.y);
-      ctx.lineWidth = this.width - 1;
+      ctx.beginPath();
+
+      ctx.moveTo(Math.round(fromScreenPos.x), Math.round(fromScreenPos.y));
+      ctx.lineTo(Math.round(toScreenPos.x), Math.round(toScreenPos.y));
+
+      ctx.lineWidth = this.width;
       ctx.strokeStyle = this.color;
       ctx.stroke();
+
+      ctx.closePath();
     }
   }
   

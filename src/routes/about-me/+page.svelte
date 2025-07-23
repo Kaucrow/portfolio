@@ -82,7 +82,7 @@
 
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      room.update(camera);
+      room.update(camera, 1);
       room.draw(ctx, camera);
 
       requestAnimationFrame(loop);
