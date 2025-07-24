@@ -1,4 +1,4 @@
-import type { Camera } from "./Camera";
+import type { Camera } from "./Camera.svelte";
 import { Sprite } from "./Sprite";
 import type { IDrawable } from "./IDrawable";
 
@@ -14,14 +14,14 @@ export class RoomObject implements IDrawable {
 
     // Calculate this object's absolute world position
     // This is its position relative to the container, plus the container's absolute position
-    const absoluteX = parentWorldX + this.x * this.sprite.scale;
-    const absoluteY = parentWorldY + this.y * this.sprite.scale;
+    const absoluteX = parentWorldX + this.x;
+    const absoluteY = parentWorldY + this.y;
 
     // Use the object's absolute world position for camera transformation
     const screenPos = camera.worldToScreen(absoluteX, absoluteY);
 
-    const scaledWidth = this.sprite.width * this.sprite.scale;
-    const scaledHeight = this.sprite.height * this.sprite.scale;
+    const scaledWidth = this.sprite.width * camera.globalScale;
+    const scaledHeight = this.sprite.height * camera.globalScale;
 
     // Ensure the center of the scaled sprite aligns with screenPos.x and screenPos.y
     const drawX = screenPos.x - scaledWidth / 2;

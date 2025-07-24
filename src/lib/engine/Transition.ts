@@ -1,7 +1,7 @@
 type Dir = 'intoLeft' | 'fromLeft' | 'intoRight' | 'fromRight';
 
 import { Sprite } from './Sprite';
-import type { Camera } from './Camera';
+import type { Camera } from './Camera.svelte';
 
 import ditherHeavyImg from '$lib/assets/dither_heavy.png';
 import ditherLightImg from '$lib/assets/dither_light.png';
@@ -20,21 +20,20 @@ export class Transition {
 
   constructor(
     dir: Dir,
-    globalScale: number,
     private camera: Camera, // Store camera for use in init and pattern creation
     onComplete: Function = () => {},
-    scrollSpeed: number = 30,
+    scrollSpeed: number = 10,
   ) {
     this.dir = dir;
     this.scrollSpeed = scrollSpeed;
     this.onComplete = onComplete;
 
-    this.ditherHeavySpr = new Sprite(ditherHeavyImg, globalScale, () => {
+    this.ditherHeavySpr = new Sprite(ditherHeavyImg, camera.globalScale, () => {
       this.loadedSpritesCount++;
       this.checkAllSpritesLoaded();
     });
 
-    this.ditherLightSpr = new Sprite(ditherLightImg, globalScale, () => {
+    this.ditherLightSpr = new Sprite(ditherLightImg, camera.globalScale, () => {
       this.loadedSpritesCount++;
       this.checkAllSpritesLoaded();
     });
@@ -43,58 +42,21 @@ export class Transition {
   // Checks if both dither sprites have finished loading
   private checkAllSpritesLoaded() {
     if (this.loadedSpritesCount === 2) {
-      this.combinedPatternWidth = (this.ditherHeavySpr.img.width * this.ditherHeavySpr.scale) +
-                                  (this.ditherLightSpr.img.width * this.ditherLightSpr.scale);
+      this.combinedPatternWidth = this.ditherHeavySpr.img.width +
+                                  this.ditherLightSpr.img.width;
 
       // Initialize scroll position based on direction and combined width
       switch (this.dir) {
         case 'intoRight':
         case 'fromLeft':
-          this.scrollX = -this.combinedPatternWidth; // Starts off-screen left
+          this.scrollX = -this.camera.scale(this.combinedPatternWidth); // Starts off-screen left
           break;
         case 'intoLeft':
         case 'fromRight':
-          this.scrollX = this.camera.viewportWidth; // Starts covering from the right edge of the viewport
+          this.scrollX = this.camera.scale(this.camera.viewportWidth); // Starts covering from the right edge of the viewport
           break;
       }
       this.paused = false; // Transition is ready to begin
-    }
-  }
-
-  updateGlobalScale(globalScale: number) {
-    // Ensure sprites are loaded before attempting to update their scale
-    if (!this.ditherHeavySpr.isLoaded || !this.ditherLightSpr.isLoaded) {
-      console.warn("Sprites not loaded yet, cannot update global scale.");
-      return;
-    }
-
-    // Apply the new scale to both dither sprites
-    this.ditherHeavySpr.scale = globalScale;
-    this.ditherLightSpr.scale = globalScale;
-
-    // Recalculate combined pattern width based on new scaled sprite widths
-    this.combinedPatternWidth = (this.ditherHeavySpr.img.width * this.ditherHeavySpr.scale) +
-                                (this.ditherLightSpr.img.width * this.ditherLightSpr.scale);
-
-    // Invalidate the existing dither pattern so it's recreated with the new scale
-    this.ditherPattern = null;
-
-    // Re-adjust scrollX to account for the new combined pattern width,
-    // especially if the transition is ongoing or about to start.
-    // This prevents jumps if the scale changes mid-transition.
-    switch (this.dir) {
-      case 'intoRight':
-        this.scrollX = -this.combinedPatternWidth;
-        break;
-      case 'fromRight':
-        this.scrollX = 0;
-        break;
-      case 'intoLeft':
-        this.scrollX = this.camera.viewportWidth;
-        break;
-      case 'fromLeft':
-        this.scrollX = this.camera.viewportWidth - this.combinedPatternWidth;
-        break;
     }
   }
 
@@ -102,9 +64,7 @@ export class Transition {
     // Ensure both sprites are loaded before updating
     if (this.paused || !this.ditherHeavySpr.isLoaded || !this.ditherLightSpr.isLoaded) return;
 
-    const adjustedScrollSpeed = Math.round(
-      this.scrollSpeed * this.ditherHeavySpr.scale
-    );
+    const adjustedScrollSpeed = this.camera.scale(this.scrollSpeed)
 
     switch (this.dir) {
       case 'intoRight':
@@ -154,10 +114,10 @@ export class Transition {
       }
 
       // Calculate scaled dimensions for drawing onto the temporary canvas
-      const heavyScaledWidth = this.ditherHeavySpr.img.width * this.ditherHeavySpr.scale;
-      const heavyScaledHeight = this.ditherHeavySpr.img.height * this.ditherHeavySpr.scale;
-      const lightScaledWidth = this.ditherLightSpr.img.width * this.ditherLightSpr.scale;
-      const lightScaledHeight = this.ditherLightSpr.img.height * this.ditherLightSpr.scale;
+      const heavyScaledWidth = this.ditherHeavySpr.img.width * this.camera.globalScale;
+      const heavyScaledHeight = this.ditherHeavySpr.img.height * this.camera.globalScale;
+      const lightScaledWidth = this.ditherLightSpr.img.width * this.camera.globalScale;
+      const lightScaledHeight = this.ditherLightSpr.img.height * this.camera.globalScale;
 
       // Set the temporary canvas dimensions to hold both images side-by-side
       tempCanvas.width = heavyScaledWidth + lightScaledWidth;
@@ -208,6 +168,7 @@ export class Transition {
 
     // Draw the dither pattern
     ctx.save();
+
     ctx.translate(scrollXInt, 0); // Translate the canvas context by the current scroll position
     // Fill exactly the area we want the pattern to appear in
     ctx.fillStyle = this.ditherPattern;

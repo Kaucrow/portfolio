@@ -10,7 +10,7 @@
     dialogues = {},
     dialogueId,
     speed = 20,
-    borderWidth = 1,
+    scale = 1,
     bgColor = 'var(--bg-color)',
     fgColor = 'var(--fg-color)',
     padding = '10px',
@@ -22,7 +22,7 @@
     dialogues: { [key: string]: string[] };
     dialogueId: string;
     speed?: number;
-    borderWidth?: number;
+    scale?: number;
     bgColor?: string;
     fgColor?: string;
     padding?: string;
@@ -52,7 +52,7 @@
   let lastProcessedDialogueId = $state<string | null>(null);
 
   onMount(() => {
-    const rightArrowSpr = new Sprite(rightArrowImg, borderWidth);
+    const rightArrowSpr = new Sprite(rightArrowImg, scale);
     rightArrowSpr.awaitLoad()
       .then(() => {
         rightArrowSpriteInstance = rightArrowSpr;
@@ -61,7 +61,7 @@
         console.error('[DialogueBox] Error loading right arrow sprite:', error);
       });
 
-    const downArrowSpr = new Sprite(downArrowImg, borderWidth);
+    const downArrowSpr = new Sprite(downArrowImg, scale);
     downArrowSpr.awaitLoad()
       .then(() => {
         downArrowSpriteInstance = downArrowSpr;
@@ -125,15 +125,15 @@
 
   // Effect for drawing the right arrow on the canvas
   $effect(() => {
-    if (rightArrowCanvas && rightArrowSpriteInstance && borderWidth > 0) {
+    if (rightArrowCanvas && rightArrowSpriteInstance && scale > 0) {
       const rightArrowCtx = rightArrowCanvas.getContext('2d');
       if (!rightArrowCtx) {
         console.error("[DialogueBox] Failed to get canvas context in reactive effect.");
         return;
       }
 
-      const rightArrowWidth = rightArrowSpriteInstance.width * borderWidth;
-      const rightArrowHeight = rightArrowSpriteInstance.height * borderWidth;
+      const rightArrowWidth = rightArrowSpriteInstance.width * scale;
+      const rightArrowHeight = rightArrowSpriteInstance.height * scale;
 
       if (rightArrowWidth <= 0 || rightArrowHeight <= 0) {
         console.warn(`[DialogueBox] Calculated arrow dimensions are zero or negative (${rightArrowWidth}x${rightArrowHeight}). Skipping draw.`);
@@ -149,15 +149,15 @@
 
   // Effect for drawing the down arrow on the canvas
   $effect(() => {
-    if (downArrowCanvas && downArrowSpriteInstance && borderWidth > 0) {
+    if (downArrowCanvas && downArrowSpriteInstance && scale > 0) {
       const downArrowCtx = downArrowCanvas.getContext('2d');
       if (!downArrowCtx) {
         console.error("[DialogueBox] Failed to get canvas context in reactive effect.");
         return;
       }
 
-      const rightArrowWidth = downArrowSpriteInstance.width * borderWidth;
-      const rightArrowHeight = downArrowSpriteInstance.height * borderWidth;
+      const rightArrowWidth = downArrowSpriteInstance.width * scale;
+      const rightArrowHeight = downArrowSpriteInstance.height * scale;
 
       if (rightArrowWidth <= 0 || rightArrowHeight <= 0) {
         console.warn(`[DialogueBox] Calculated arrow dimensions are zero or negative (${rightArrowWidth}x${rightArrowHeight}). Skipping draw.`);
@@ -243,7 +243,7 @@
       }
     }}
     style="
-      border: {borderWidth}px solid {fgColor};
+      border: {scale}px solid {fgColor};
       background-color: {bgColor};
       color: {fgColor};
       padding: {padding};
@@ -257,9 +257,9 @@
     <div
       class="bg-[var(--bg-color)] absolute"
       style="
-        min-width: {borderWidth}px;
-        top: -{borderWidth}px;
-        left: {width - borderWidth * 2}px;
+        min-width: {scale}px;
+        top: -{scale}px;
+        left: {width - scale * 2}px;
         z-index: 11;
       "
     >

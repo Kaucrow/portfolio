@@ -1,4 +1,4 @@
-import type { Camera } from "./Camera";
+import type { Camera } from "./Camera.svelte";
 import type { IDrawable } from "./IDrawable";
 import type { Point } from "./IPoint"; // Import the Point interface
 import { DrawingUtils } from "./DrawingUtils"; // Import the utility for drawing pixels

@@ -1,4 +1,4 @@
-import type { Camera } from "./Camera";
+import type { Camera } from "./Camera.svelte";
 import type { Sprite } from "./Sprite";
 
 export interface IDrawable {

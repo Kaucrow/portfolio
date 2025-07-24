@@ -1,4 +1,4 @@
-import type { Camera } from "./Camera";
+import type { Camera } from "./Camera.svelte";
 import type { IDrawable } from "./IDrawable";
 
 export class Container implements IDrawable {
