@@ -27,6 +27,26 @@ export class Camera {
     };
   }
 
+  htmlToScreen(x: number, y: number): { x: number, y: number } {
+    // Translate world point relative to camera's current position
+    const translatedX = x - (this.viewportWidth / 2);
+    const translatedY = y - (this.viewportHeight / 2);
+
+    // Apply camera's internal zoom
+    const zoomedX = translatedX * this.zoom;
+    const zoomedY = translatedY * this.zoom;
+
+    // Apply the global scale to the zoomed coordinates
+    const scaledX = zoomedX * this.globalScale;
+    const scaledY = zoomedY * this.globalScale;
+
+    // Add half the viewport dimensions to center the camera view on the screen
+    return {
+      x: Math.floor(scaledX),
+      y: Math.floor(scaledY),
+    };
+  }
+
   scale(val: number): number {
     return Math.floor(val * this.globalScale);
   }
