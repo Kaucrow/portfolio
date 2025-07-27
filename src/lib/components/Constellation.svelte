@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount, onDestroy, afterUpdate } from 'svelte';
+  import { onMount, onDestroy } from 'svelte';
   import { browser } from '$app/environment';
   import { fade } from 'svelte/transition';
 
@@ -12,71 +12,96 @@
     y: number;
   }
 
-  export let id: number | undefined = undefined;
-  export let stars: Star[] = [];
-  export let connections: [number, number][] = [];
-  export let constellationColor: string = '#fff1e8';
-  export let starSize: number = 10;
-  export let cardTitle: string = '';
-  export let cardSubtitle: string = '';
+  type Connection = [number, number];
+
+  const {
+    id = undefined,
+    stars = [],
+    connections = [],
+    constellationColor = '#fff1e8',
+    starSize = 10,
+    cardTitle = '',
+    cardSubtitle = '',
+  } = $props<{
+    id: number | undefined;
+    stars: Star[];
+    connections: Connection[];
+    constellationColor?: string;
+    starSize?: number;
+    cardTitle?: string;
+    cardSubtitle?: string;
+  }>();
 
   let containerRef: HTMLDivElement;
   let placeholderRef: HTMLDivElement;
 
-  let placeholderBoundingRect: DOMRect;
-  let initialBoundingRectSet: boolean = false;
+  let placeholderBoundingRect = $state<DOMRect>();
+  let isExpanded = $state(false);
+  let currentZIndex = $state(1); // Start with a default z-index (e.g., 1)
 
-  export let isExpanded: boolean = false;
-  let currentZIndex: number = 1; // Start with a default z-index (e.g., 1)
-
-  let placeholderCanvas: HTMLCanvasElement;
-  let mainCanvas: HTMLCanvasElement | null = null;
+  let mainCanvas = $state<HTMLCanvasElement>();
   let ctx: CanvasRenderingContext2D | null = null;
   let camera: Camera | null = null;
   let canvasWidth: number = 0;
   let canvasHeight: number = 0;
 
-  let mainCanvasMounted: boolean = false;
-
-
   function calculateConstellationDimensions() {
     let maxX = 0;
     let maxY = 0;
-    stars.forEach(star => {
+    stars.forEach((star: Star) => {
       if (star.x > maxX) {
         maxX = star.x;
       }
       if (star.y > maxY) {
-        maxY = star.y
+        maxY = star.y;
       }
     });
-    const minSize = 100;
+    const minSize = 100; // Ensure a minimum size
     return {
       width: Math.max(minSize, maxX + starSize * 2),
-      height: Math.max(minSize, maxY + starSize * 2)
+      height: Math.max(minSize, maxY + starSize * 2),
     };
   }
 
   function resizeAndDrawCanvas(canvasEl: HTMLCanvasElement): void {
     if (!browser || !canvasEl) return;
 
-    const { width, height } = calculateConstellationDimensions();
+    // Use dimensions based on expansion state or placeholder
+    let targetWidth, targetHeight;
+    if (isExpanded) {
+        // When expanded, the canvas should fill its container (90% width/height of viewport)
+        // Adjust these as needed for your desired expanded canvas size
+        targetWidth = window.innerWidth * 0.9;
+        targetHeight = window.innerHeight * 0.9;
+    } else {
+        // When collapsed, canvas takes dimensions of the calculated constellation
+        const { width, height } = calculateConstellationDimensions();
+        targetWidth = width;
+        targetHeight = height;
+    }
 
-    canvasEl.width = width;
-    canvasEl.height = height;
-    canvasEl.style.width = width + 'px';
-    canvasEl.style.height = height + 'px';
+    canvasEl.width = targetWidth;
+    canvasEl.height = targetHeight;
+    canvasEl.style.width = targetWidth + 'px';
+    canvasEl.style.height = targetHeight + 'px'; // Ensure CSS matches canvas resolution
 
-    canvasWidth = width;
-    canvasHeight = height;
+    canvasWidth = targetWidth;
+    canvasHeight = targetHeight;
 
     if (canvasEl === mainCanvas) {
       ctx = mainCanvas.getContext('2d');
-      camera = new Camera(canvasWidth, canvasHeight);
+      // Re-initialize camera on resize if dimensions change
+      if (!camera || camera.viewportWidth !== canvasWidth || camera.viewportHeight !== canvasHeight) {
+        camera = new Camera(canvasWidth, canvasHeight);
+      }
+      drawConstellation(); // Redraw after resize
     }
   }
 
-  export let onclick: (event: MouseEvent | KeyboardEvent, constellationId: number | undefined) => void = (event, constellationId) => {
+  let onclick: (event: MouseEvent | KeyboardEvent, constellationId: number | undefined) => void = (
+    event,
+    constellationId,
+  ) => {
     if (browser) {
       if (event && (event.type === 'keydown' || event.type === 'keypress')) {
         event.preventDefault();
@@ -87,17 +112,9 @@
   };
 
   function drawConstellation(): void {
-    if (!ctx || !browser || isExpanded) {
+    if (!ctx || !browser || !camera || !mainCanvas) {
+      console.warn('Cannot draw constellation: missing ctx, browser, camera, or mainCanvas');
       return;
-    }
-
-    if (ctx.canvas !== mainCanvas) {
-        if (mainCanvas) {
-            ctx = mainCanvas.getContext('2d');
-            if (!ctx) return;
-        } else {
-            return;
-        }
     }
 
     ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
@@ -105,16 +122,17 @@
     ctx.fillStyle = constellationColor;
 
     const starPositions = new Map<number, Star>();
-    stars.forEach(star => {
+    stars.forEach((star: Star) => {
       starPositions.set(star.id, star);
     });
 
-    connections.forEach(connection => {
+    connections.forEach((connection: Connection) => {
       const [startId, endId] = connection;
       const startStar = starPositions.get(startId);
       const endStar = starPositions.get(endId);
 
-      if (startStar && endStar && ctx && camera) {
+      if (startStar && endStar && camera && ctx) {
+        // Assuming camera.htmlToScreen transforms raw star coordinates to canvas coordinates
         const fromPos = camera.htmlToScreen(startStar.x, startStar.y);
         const toPos = camera.htmlToScreen(endStar.x, endStar.y);
 
@@ -125,14 +143,16 @@
       }
     });
 
-    stars.forEach(star => {
+    stars.forEach((star: Star) => {
+      // Apply camera transformation for star positions
+      if (!camera || !ctx) return;
+
       const x = star.x - starSize / 2;
       const y = star.y - starSize / 2;
 
-      if (!ctx) return;
-
       ctx.fillRect(x, y, starSize, starSize);
 
+      // Adjust text position relative to the star and camera
       ctx.font = `${starSize * 1.5}px Arial`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
@@ -140,34 +160,31 @@
     });
   }
 
-
   onMount(() => {
     if (browser) {
-      placeholderBoundingRect = new DOMRect();
-
-      const pollForInitialSize = () => {
-        if (placeholderRef && placeholderCanvas) {
-          resizeAndDrawCanvas(placeholderCanvas);
-
+      // Use requestAnimationFrame for initial measurement
+      const measurePlaceholder = () => {
+        if (placeholderRef) {
           const rect = placeholderRef.getBoundingClientRect();
           if (rect.width > 0 && rect.height > 0) {
             placeholderBoundingRect = rect;
-            initialBoundingRectSet = true;
             console.log(`Constellation ${id}: Initial placeholderBoundingRect resolved!`, placeholderBoundingRect);
-            return;
+          } else {
+            // If still not ready, try again on the next frame
+            requestAnimationFrame(measurePlaceholder);
           }
         }
-        requestAnimationFrame(pollForInitialSize);
       };
-
-      pollForInitialSize();
+      requestAnimationFrame(measurePlaceholder);
 
       const handleResize = () => {
-        if (placeholderCanvas) resizeAndDrawCanvas(placeholderCanvas);
-        if (mainCanvas) resizeAndDrawCanvas(mainCanvas);
         if (placeholderRef) {
+          // Update placeholderBoundingRect on resize
           placeholderBoundingRect = placeholderRef.getBoundingClientRect();
           console.log(`Constellation ${id}: placeholderBoundingRect updated on resize!`, placeholderBoundingRect);
+        }
+        if (mainCanvas) {
+          resizeAndDrawCanvas(mainCanvas); // Recalculate and redraw main canvas
         }
       };
       window.addEventListener('resize', handleResize);
@@ -178,79 +195,50 @@
     }
   });
 
-
-  $: if (mainCanvas && browser && !mainCanvasMounted) {
-    mainCanvasMounted = true;
-    console.log(`Constellation ${id}: Main canvas appeared in DOM.`);
-    resizeAndDrawCanvas(mainCanvas);
-    if (ctx && camera) {
-      drawConstellation();
-    }
-  } else if (!mainCanvas && browser && mainCanvasMounted) {
-    mainCanvasMounted = false;
-    console.log(`Constellation ${id}: Main canvas disappeared from DOM.`);
-    ctx = null;
-    camera = null;
-  }
-
-    // React to changes in isExpanded to control z-index
-    $: {
-        if (isExpanded) {
-            currentZIndex = 50; // Set high z-index when expanded
-        }
-    }
-
-
-  afterUpdate(() => {
-    if (browser && placeholderRef && !isExpanded && !initialBoundingRectSet) {
-      const currentRect = placeholderRef.getBoundingClientRect();
-
-      if (currentRect.width > 0 && currentRect.height > 0 &&
-        (placeholderBoundingRect.width !== currentRect.width ||
-        placeholderBoundingRect.height !== currentRect.height ||
-        placeholderBoundingRect.left !== currentRect.left ||
-        placeholderBoundingRect.top !== currentRect.top))
-      {
-        placeholderBoundingRect = currentRect;
-        console.log(`Constellation ${id}: placeholderBoundingRect updated (afterUpdate, collapsed state):`, placeholderBoundingRect);
-      }
-    }
-
-    if (browser && !isExpanded && ctx && camera && mainCanvasMounted && mainCanvas) {
+  // Effect to handle mainCanvas appearance and redraw
+  $effect(() => {
+    if (mainCanvas && browser) {
+      console.log(`Constellation ${id}: Main canvas appeared in DOM or updated.`);
       resizeAndDrawCanvas(mainCanvas);
-      drawConstellation();
     }
   });
 
-
-  $: stars, connections, constellationColor, starSize;
-  $: cardTitle, cardSubtitle;
-
-    // Function to handle the end of the transition
-    function handleTransitionEnd() {
-        if (!isExpanded) {
-            currentZIndex = 1; // Revert z-index when collapse transition is complete
-        }
+  // React to changes in isExpanded to control z-index
+  $effect(() => {
+    if (isExpanded) {
+      currentZIndex = 50; // Set high z-index when expanded
     }
+  });
+
+  // Function to handle the end of the transition
+  function handleTransitionEnd() {
+    if (!isExpanded) {
+      currentZIndex = 1; // Revert z-index when collapse transition is complete
+    }
+  }
 </script>
 
 <div
   bind:this={placeholderRef}
-  class="inline-block pointer-events-none"
-  style="opacity: 0;
-          position: relative;
-          z-index: -1;
-         "
+  class="relative inline-blockinvisible"
 >
-  <div
-    class="relative p-2"
-    style="color: {constellationColor};"
-  >
-    <canvas bind:this={placeholderCanvas} aria-label="Constellation Placeholder Canvas"></canvas>
+  <div class="relative p-4" style="color: {constellationColor};">
+    <div
+      class="inline-block"
+      style="
+        width: {calculateConstellationDimensions().width}px;
+        height: {calculateConstellationDimensions().height}px;
+      "
+    ></div>
     {#if cardTitle}
       <div class="text-[2em]">
         {cardTitle}
       </div>
+      {#if cardSubtitle}
+        <div>
+          {cardSubtitle}
+        </div>
+      {/if}
     {/if}
   </div>
 </div>
@@ -259,7 +247,7 @@
 
 <div
   bind:this={containerRef}
-  class="fixed transition-all duration-500 ease-in-out bg-black overflow-hidden"
+  class="fixed bg-black overflow-hidden"
   style={browser && placeholderBoundingRect ? `
     left: ${isExpanded ? `5%` : `${(placeholderBoundingRect.left || 0)}px`};
     top: ${isExpanded ? `5%` : `${(placeholderBoundingRect.top || 0)}px`};
@@ -267,11 +255,12 @@
     height: ${isExpanded ? '90%' : (placeholderBoundingRect.height || 0) + 'px'};
     border: 2px solid ${constellationColor};
     box-sizing: border-box;
-    z-index: ${currentZIndex}; /* Use the dynamic z-index */
+    z-index: ${currentZIndex};
+    transition: left 0.5s ease-in-out, top 0.5s ease-in-out, width 0.5s ease-in-out, height 0.5s ease-in-out, transform 0.25s ease-out, z-index 0.5s ease-in-out;
   ` : ''}
   ontransitionend={handleTransitionEnd}
-  onmouseenter={ () => { if (!isExpanded) containerRef.style.transform = 'translateY(-10px)'; }}
-  onmouseleave={ () => { if (!isExpanded) containerRef.style.transform = 'translateY(0px)'; }}
+  onmouseenter={() => { if (!isExpanded) containerRef.style.transform = 'translateY(-10px)'; }}
+  onmouseleave={() => { if (!isExpanded) containerRef.style.transform = 'translateY(0px)'; }}
   role="button"
   tabindex="0"
 >
@@ -283,14 +272,27 @@
       tabindex="0"
       onclick={(e) => onclick(e, id)}
       onkeydown={(e) => e.key === 'Enter' && onclick(e, id)}
-      class="relative p-2 cursor-pointer w-full h-full" style="color: {constellationColor};"
+      class="relative p-4 cursor-pointer w-full h-full"
+      style="color: {constellationColor};"
     >
-      <canvas bind:this={mainCanvas} class="w-full h-full" aria-label="Constellation Canvas"></canvas>
+      <canvas bind:this={mainCanvas} class="absolute inset-0 w-full h-full" aria-label="Constellation Canvas"></canvas>
+
+      <div
+        class="absolute bottom-5 z-10"
+        in:fade={{ duration: 250, delay: 250 }}
+        out:fade={{ duration: 250 }}
+      >
       {#if cardTitle}
         <div class="text-[2em]">
           {cardTitle}
         </div>
+        {#if cardSubtitle}
+          <div>
+            {cardSubtitle}
+          </div>
+        {/if}
       {/if}
+      </div>
     </div>
   {:else}
     <div
@@ -300,9 +302,10 @@
       tabindex="0"
       onclick={(e) => onclick(e, id)}
       onkeydown={(e) => e.key === 'Enter' && onclick(e, id)}
-      class="w-full h-full p-4 text-white" style="color: {constellationColor};"
+      class="w-full h-full p-4 text-white flex items-center justify-center"
+      style="color: {constellationColor};"
     >
-      ELATLA (Expanded Content)
+      <p class="text-3xl font-bold">ELATLA (Expanded Content)</p>
     </div>
   {/if}
 </div>

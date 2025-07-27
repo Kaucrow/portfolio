@@ -66,7 +66,7 @@
   }
 </script>
 
-<div class="flex gap-4 items-center justify-center w-full min-h-100">
+<div class="flex gap-0 items-center justify-center w-full min-h-100">
   <StarsBackground/>
 
   <Constellation
@@ -78,16 +78,7 @@
   />
 
   <Constellation
-    id={2}
-    stars={starsData}
-    connections={connectionsData}
-    cardTitle="elatla"
-    cardSubtitle="gigachad unparalleled"
-  />
-
-
-  <Constellation
-    id={2}
+    id={1}
     stars={starsData}
     connections={connectionsData}
     cardTitle="elatla"
