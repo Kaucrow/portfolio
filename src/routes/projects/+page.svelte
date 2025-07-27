@@ -10,6 +10,8 @@
 
   let pageObjectsInitialized = false;
 
+  let displayProject = $state(false);
+
   const starsData = [
     { id: 0, x: 100, y: 50 },
     { id: 1, x: 250, y: 150 },
@@ -57,18 +59,38 @@
       })();
     }
   );
+
+  function handleConstellationClick(event: MouseEvent | KeyboardEvent, id: number | undefined) {
+    console.log(`Clicked on constellation ${id}`);
+    displayProject = true;
+  }
 </script>
 
-
-<div class="flex items-center justify-center w-full min-h-100">
-  <StarsBackground>
-
-  </StarsBackground>
+<div class="flex gap-4 items-center justify-center w-full min-h-100">
+  <StarsBackground/>
 
   <Constellation
+    id={1}
     stars={starsData}
     connections={connectionsData}
-    title="elatla"
-    subtitle="gigachad unparalleled"
+    cardTitle="elatla"
+    cardSubtitle="gigachad unparalleled"
+  />
+
+  <Constellation
+    id={2}
+    stars={starsData}
+    connections={connectionsData}
+    cardTitle="elatla"
+    cardSubtitle="gigachad unparalleled"
+  />
+
+
+  <Constellation
+    id={2}
+    stars={starsData}
+    connections={connectionsData}
+    cardTitle="elatla"
+    cardSubtitle="gigachad unparalleled"
   />
 </div>
