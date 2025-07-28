@@ -8,6 +8,8 @@
   import { Camera } from '$lib/engine/Camera.svelte';
   
   import ScrollArea from './ScrollArea.svelte';
+  import Carousel, { type MediaItem } from './Carousel.svelte';
+  import Badge from './Badge.svelte';
 
   interface Star {
     id: number;
@@ -18,15 +20,19 @@
   type Connection = [number, number];
 
   const {
-    id = undefined,
-    stars = [],
-    connections = [],
+    id,
+    stars,
+    connections,
     constellationColor = '#fff1e8',
     starSize = 10,
-    title = '',
-    cardSubtitle = '',
-    cardTechnologies = [],
-    subtitle = '',
+    title,
+    cardSubtitle,
+    cardTechnologies,
+    subtitle,
+    githubLink,
+    status,
+    mediaItems = [],
+    features = [],
   } = $props<{
     id: number | undefined;
     stars: Star[];
@@ -35,11 +41,16 @@
     starSize?: number;
     title: string;
     cardSubtitle: string;
-    cardTechnologies: string[],
+    cardTechnologies: string[];
     subtitle: string;
+    githubLink: string;
+    status: 'completed' | 'ongoing';
+    mediaItems: MediaItem[];
+    features?: string[];
   }>();
 
   let description: string = "# BIG ATLA\n\n ## Hello world \n\nThis is a cool project. Really cool, really nice, 10/10 project.\n\n* ELATLA\n\n* ELATLA2\n\n* ELATLA3\n\nq\n\nw\n\ne\n\nr\n\nt\n\ny";
+  let renderedDescriptionHtml = $state('');
 
   let containerRef: HTMLDivElement;
   let placeholderRef: HTMLDivElement;
@@ -47,6 +58,8 @@
   let placeholderBoundingRect = $state<DOMRect>();
   let isExpanded = $state(true);
   let currentZIndex = $state(1); // Start with a default z-index (e.g., 1)
+
+  let displayCarousel = $state(false);
 
   let mainCanvas = $state<HTMLCanvasElement>();
   let ctx: CanvasRenderingContext2D | null = null;
@@ -171,7 +184,9 @@
 
   onMount(() => {
     if (browser) {
-
+      (async () => {
+        renderedDescriptionHtml = await marked(description);
+      })();
 
       // Use requestAnimationFrame for initial measurement
       const measurePlaceholder = () => {
@@ -219,24 +234,24 @@
     if (isExpanded) {
       currentZIndex = 50; // Set high z-index when expanded
 
-      (async () => {
-      const htmlOutput = await marked(description);
       const descriptionDiv = document.getElementById('description-div');
       if (descriptionDiv) {
-        console.log("FOUND");
-        console.log(htmlOutput);
-        descriptionDiv.innerHTML = htmlOutput;
+        descriptionDiv.innerHTML = renderedDescriptionHtml;
       } else {
-        console.error("NOT FOUND");
+        console.warn("Could not find description div.");
       }
-      })();
     }
   });
 
   // Function to handle the end of the transition
-  function handleTransitionEnd() {
+  async function handleTransitionEnd(e: TransitionEvent) {
+    if (e.propertyName === 'width') {
     if (!isExpanded) {
       currentZIndex = 1; // Revert z-index when collapse transition is complete
+      displayCarousel = false;
+    } else {
+      displayCarousel = true;
+    }
     }
   }
 </script>
@@ -268,9 +283,9 @@
   bind:this={containerRef}
   class="fixed bg-black overflow-hidden select-none"
   style={browser && placeholderBoundingRect ? `
-    left: ${isExpanded ? `5%` : `${(placeholderBoundingRect.left || 0)}px`};
+    left: ${isExpanded ? `10%` : `${(placeholderBoundingRect.left || 0)}px`};
     top: ${isExpanded ? `5%` : `${(placeholderBoundingRect.top || 0)}px`};
-    width: ${isExpanded ? '90%' : (placeholderBoundingRect.width || 0) + 'px'};
+    width: ${isExpanded ? '80%' : (placeholderBoundingRect.width || 0) + 'px'};
     height: ${isExpanded ? '90%' : (placeholderBoundingRect.height || 0) + 'px'};
     border: 2px solid ${constellationColor};
     box-sizing: border-box;
@@ -297,7 +312,7 @@
       <canvas bind:this={mainCanvas} class="absolute inset-0 w-full h-full" aria-label="Constellation Canvas"></canvas>
 
       <div
-        class="absolute bottom-0 p-4 z-10 justify-center items-center flex flex-row gap-8 w-full"
+        class="absolute bottom-0 p-4 z-10 justify-center items-center flex flex-row gap-4 w-full"
         in:fade={{ duration: 250, delay: 250 }}
         out:fade={{ duration: 250 }}
       >
@@ -312,7 +327,7 @@
         {#if cardTechnologies}
           <div class="w-2/5 flex flex-wrap gap-2">
             {#each cardTechnologies as technology}
-              <span class="text-[1.5em] leading-none bg-[var(--fg-color)] text-[var(--bg-color)] p-1">{technology}</span>
+              <Badge name={technology} />
             {/each}
           </div>
         {/if}
@@ -327,15 +342,35 @@
         tabindex="0"
         onclick={(e) => onclick(e, id)}
         onkeydown={(e) => e.key === 'Enter' && onclick(e, id)}
-        class="custom-scroll px-8 py-4 w-full h-full text-[var(--fg-color)]"
+        class="px-8 py-4 w-full text-[var(--fg-color)]"
         style="color: {constellationColor};"
       >
-        <div class="text-[4em] font-bold leading-none">
-          {title}
+        <div class="leading-none mb-2">
+          <span class="text-[4em] font-bold">{title}</span>
+        </div>
+        <div class="flex flex-row gap-4 items-center leading-none mb-2">
+          <a href="{githubLink}" onclick={ (e) => { e.stopPropagation(); }}>
+            <Badge name="Github" icon="github" />
+          </a>
+          {#if status === 'completed'}
+            <Badge name="Completed" icon="checkmark" />
+          {:else}
+            <Badge name="Ongoing" />
+          {/if}
         </div>
         <div class="text-[1.5em]">
           {subtitle}
         </div>
+        {#if displayCarousel}
+          <div 
+            in:fade={{ duration: 250 }}
+            class="mx-50 my-10"
+          >
+            <Carousel media={mediaItems} />
+          </div>
+        {:else}
+          <div class="h-142"></div>
+        {/if}
         <div class="
           min-w-full
           prose prose-invert
@@ -347,6 +382,7 @@
           "
           id="description-div">
         </div>
+
       </div>
     </ScrollArea>
   {/if}

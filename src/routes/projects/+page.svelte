@@ -7,10 +7,9 @@
   
   import Constellation from "$lib/components/Constellation.svelte";
   import StarsBackground from "$lib/components/StarsBackground.svelte";
+  import { type MediaItem } from "$lib/components/Carousel.svelte";
 
   let pageObjectsInitialized = false;
-
-  let displayProject = $state(false);
 
   const starsData = [
     { id: 0, x: 100, y: 50 },
@@ -31,6 +30,14 @@
     [4, 2],
     [5, 1],
     [5, 3],
+  ];
+
+  const mediaItems: MediaItem[] = [
+    { type: 'image', src: 'https://placehold.co/600x400?text=Hello+World', alt: 'Placeholder Image 1' },
+    { type: 'video', src: 'https://www.w3schools.com/html/mov_bbb.mp4', autoplay: true, loop: true, controls: true },
+    { type: 'image', src: 'https://via.placeholder.com/1280x720/33FF57/FFFFFF?text=Image+2', alt: 'Placeholder Image 2' },
+    { type: 'video', src: 'https://www.w3schools.com/html/movie.mp4', autoplay: false, loop: false, controls: true },
+    { type: 'image', src: 'https://via.placeholder.com/1280x720/3357FF/FFFFFF?text=Image+3', alt: 'Placeholder Image 3' },
   ];
 
   $effect(() => {
@@ -59,11 +66,6 @@
       })();
     }
   );
-
-  function handleConstellationClick(event: MouseEvent | KeyboardEvent, id: number | undefined) {
-    console.log(`Clicked on constellation ${id}`);
-    displayProject = true;
-  }
 </script>
 
 <div class="flex gap-0 items-center justify-center w-full min-h-100">
@@ -77,5 +79,8 @@
     cardSubtitle="Music Player Web App"
     cardTechnologies={['React', 'Shadcn']}
     subtitle="Sleek music player web app built using React, IndexedDB, and Shadcn components."
+    githubLink="https://github.com/Kaucrow/soundown"
+    status="completed"
+    mediaItems={mediaItems}
   />
 </div>
