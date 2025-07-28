@@ -1,9 +1,19 @@
 @import 'tailwindcss';
 
+@plugin '@tailwindcss/typography';
+
 @font-face {
   font-family: 'Monogram';
   src: url('/fonts/monogram.ttf') format('truetype');
   font-display: swap;
+}
+
+.prose ul {
+  list-style-type: square;
+}
+
+.prose ul > li::marker {
+  color: var(--fg-color);
 }
 
 :root {

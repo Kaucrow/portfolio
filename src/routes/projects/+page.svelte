@@ -73,15 +73,9 @@
     id={1}
     stars={starsData}
     connections={connectionsData}
-    cardTitle="elatla"
-    cardSubtitle="gigachad unparalleled"
-  />
-
-  <Constellation
-    id={1}
-    stars={starsData}
-    connections={connectionsData}
-    cardTitle="elatla"
-    cardSubtitle="gigachad unparalleled"
+    title="Soundown"
+    cardSubtitle="Music Player Web App"
+    cardTechnologies={['React', 'Shadcn']}
+    subtitle="Sleek music player web app built using React, IndexedDB, and Shadcn components."
   />
 </div>

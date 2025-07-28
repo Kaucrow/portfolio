@@ -2,9 +2,12 @@
   import { onMount, onDestroy } from 'svelte';
   import { browser } from '$app/environment';
   import { fade } from 'svelte/transition';
+  import { marked } from 'marked';
 
   import { Line } from '$lib/engine/Line';
   import { Camera } from '$lib/engine/Camera.svelte';
+  
+  import ScrollArea from './ScrollArea.svelte';
 
   interface Star {
     id: number;
@@ -20,23 +23,29 @@
     connections = [],
     constellationColor = '#fff1e8',
     starSize = 10,
-    cardTitle = '',
+    title = '',
     cardSubtitle = '',
+    cardTechnologies = [],
+    subtitle = '',
   } = $props<{
     id: number | undefined;
     stars: Star[];
     connections: Connection[];
     constellationColor?: string;
     starSize?: number;
-    cardTitle?: string;
-    cardSubtitle?: string;
+    title: string;
+    cardSubtitle: string;
+    cardTechnologies: string[],
+    subtitle: string;
   }>();
+
+  let description: string = "# BIG ATLA\n\n ## Hello world \n\nThis is a cool project. Really cool, really nice, 10/10 project.\n\n* ELATLA\n\n* ELATLA2\n\n* ELATLA3\n\nq\n\nw\n\ne\n\nr\n\nt\n\ny";
 
   let containerRef: HTMLDivElement;
   let placeholderRef: HTMLDivElement;
 
   let placeholderBoundingRect = $state<DOMRect>();
-  let isExpanded = $state(false);
+  let isExpanded = $state(true);
   let currentZIndex = $state(1); // Start with a default z-index (e.g., 1)
 
   let mainCanvas = $state<HTMLCanvasElement>();
@@ -162,6 +171,8 @@
 
   onMount(() => {
     if (browser) {
+
+
       // Use requestAnimationFrame for initial measurement
       const measurePlaceholder = () => {
         if (placeholderRef) {
@@ -207,6 +218,18 @@
   $effect(() => {
     if (isExpanded) {
       currentZIndex = 50; // Set high z-index when expanded
+
+      (async () => {
+      const htmlOutput = await marked(description);
+      const descriptionDiv = document.getElementById('description-div');
+      if (descriptionDiv) {
+        console.log("FOUND");
+        console.log(htmlOutput);
+        descriptionDiv.innerHTML = htmlOutput;
+      } else {
+        console.error("NOT FOUND");
+      }
+      })();
     }
   });
 
@@ -220,7 +243,7 @@
 
 <div
   bind:this={placeholderRef}
-  class="relative inline-blockinvisible"
+  class="relative inline-block invisible"
 >
   <div class="relative p-4" style="color: {constellationColor};">
     <div
@@ -230,16 +253,12 @@
         height: {calculateConstellationDimensions().height}px;
       "
     ></div>
-    {#if cardTitle}
-      <div class="text-[2em]">
-        {cardTitle}
-      </div>
-      {#if cardSubtitle}
-        <div>
-          {cardSubtitle}
-        </div>
-      {/if}
-    {/if}
+    <div class="text-[2em]">
+      {title}
+    </div>
+    <div>
+      {cardSubtitle}
+    </div>
   </div>
 </div>
 
@@ -247,7 +266,7 @@
 
 <div
   bind:this={containerRef}
-  class="fixed bg-black overflow-hidden"
+  class="fixed bg-black overflow-hidden select-none"
   style={browser && placeholderBoundingRect ? `
     left: ${isExpanded ? `5%` : `${(placeholderBoundingRect.left || 0)}px`};
     top: ${isExpanded ? `5%` : `${(placeholderBoundingRect.top || 0)}px`};
@@ -272,40 +291,63 @@
       tabindex="0"
       onclick={(e) => onclick(e, id)}
       onkeydown={(e) => e.key === 'Enter' && onclick(e, id)}
-      class="relative p-4 cursor-pointer w-full h-full"
+      class="relative cursor-pointer w-full h-full"
       style="color: {constellationColor};"
     >
       <canvas bind:this={mainCanvas} class="absolute inset-0 w-full h-full" aria-label="Constellation Canvas"></canvas>
 
       <div
-        class="absolute bottom-5 z-10"
+        class="absolute bottom-0 p-4 z-10 justify-center items-center flex flex-row gap-8 w-full"
         in:fade={{ duration: 250, delay: 250 }}
         out:fade={{ duration: 250 }}
       >
-      {#if cardTitle}
-        <div class="text-[2em]">
-          {cardTitle}
+        <div class="flex flex-col w-3/5">
+          <div class="text-[3em] leading-none">
+            {title}
+          </div>
+            <div class="text-[1.5em]">
+              {cardSubtitle}
+            </div>
         </div>
-        {#if cardSubtitle}
-          <div>
-            {cardSubtitle}
+        {#if cardTechnologies}
+          <div class="w-2/5 flex flex-wrap gap-2">
+            {#each cardTechnologies as technology}
+              <span class="text-[1.5em] leading-none bg-[var(--fg-color)] text-[var(--bg-color)] p-1">{technology}</span>
+            {/each}
           </div>
         {/if}
-      {/if}
       </div>
     </div>
   {:else}
-    <div
-      in:fade={{ duration: 250, delay: 250 }}
-      out:fade={{ duration: 250 }}
-      role="button"
-      tabindex="0"
-      onclick={(e) => onclick(e, id)}
-      onkeydown={(e) => e.key === 'Enter' && onclick(e, id)}
-      class="w-full h-full p-4 text-white flex items-center justify-center"
-      style="color: {constellationColor};"
-    >
-      <p class="text-3xl font-bold">ELATLA (Expanded Content)</p>
-    </div>
+    <ScrollArea>
+      <div
+        in:fade={{ duration: 250, delay: 250 }}
+        out:fade={{ duration: 250 }}
+        role="button"
+        tabindex="0"
+        onclick={(e) => onclick(e, id)}
+        onkeydown={(e) => e.key === 'Enter' && onclick(e, id)}
+        class="custom-scroll px-8 py-4 w-full h-full text-[var(--fg-color)]"
+        style="color: {constellationColor};"
+      >
+        <div class="text-[4em] font-bold leading-none">
+          {title}
+        </div>
+        <div class="text-[1.5em]">
+          {subtitle}
+        </div>
+        <div class="
+          min-w-full
+          prose prose-invert
+          prose-h1:text-[3em] prose-h1:mb-0 prose-h1:mt-0
+          prose-h2:text-[2em] prose-h2:mb-0 prose-h2:mt-0
+          prose-p:text-[1.5em] prose-p:text-[var(--fg-color)] prose-p:mb-0 prose-p:mt-0                                      /* Paragraphs */
+          prose-ul:mt-0 prose-ul:mb-0 prose-ul:text-[var(--fg-color)]                 /* Lists */
+          prose-li:text-[1em] prose-li:mb-0 prose-li:mt-0                                    /* List items */
+          "
+          id="description-div">
+        </div>
+      </div>
+    </ScrollArea>
   {/if}
 </div>
