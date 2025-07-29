@@ -1,7 +1,7 @@
 <script lang="ts">
   import { Tween } from 'svelte/motion';
   import { cubicOut } from 'svelte/easing';
-  import Arrow from './Arrow.svelte';
+  import Icon from './Icon.svelte';
 
   export type MediaItem = {
     type: 'image' | 'video';
@@ -70,7 +70,7 @@
 
 <div class="max-w-screen-lg mx-auto mb-4">
   <div
-    class="relative overflow-hidden aspect-video flex items-center bg-gray-200 rounded-lg shadow-md mb-4"
+    class="relative overflow-hidden aspect-video flex items-center bg-gray-200 pixel-corners shadow-md mb-4"
     bind:clientWidth={carouselWidth}
   >
     <div
@@ -109,7 +109,7 @@
         prev();
       }}
     >
-      <Arrow direction="left" />
+      <Icon name="arrow-left" size={32} />
     </button>
     <div
       class="flex-grow h-full overflow-hidden"
@@ -169,7 +169,7 @@
         next();
       }}
     >
-      <Arrow direction="right" />
+      <Icon name="arrow-right" size={32} />
     </button>
   </div>
 {/if}
@@ -177,5 +177,30 @@
 <style>
   .transition-transform {
     transition-property: transform;
+  }
+
+  .pixel-corners {
+    clip-path: polygon(
+      0px calc(100% - 8px),
+      4px calc(100% - 8px),
+      4px calc(100% - 4px),
+      8px calc(100% - 4px),
+      8px 100%,
+      calc(100% - 8px) 100%,
+      calc(100% - 8px) calc(100% - 4px),
+      calc(100% - 4px) calc(100% - 4px),
+      calc(100% - 4px) calc(100% - 8px),
+      100% calc(100% - 8px),
+      100% 8px,
+      calc(100% - 4px) 8px,
+      calc(100% - 4px) 4px,
+      calc(100% - 8px) 4px,
+      calc(100% - 8px) 0px,
+      8px 0px,
+      8px 4px,
+      4px 4px,
+      4px 8px,
+      0px 8px
+    );
   }
 </style>
