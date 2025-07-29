@@ -9,15 +9,16 @@
   
   import ScrollArea from './ScrollArea.svelte';
   import Carousel, { type MediaItem } from './Carousel.svelte';
+  import Icon from './Icon.svelte';
   import Badge from './Badge.svelte';
 
-  interface Star {
+  export interface Star {
     id: number;
     x: number;
     y: number;
   }
 
-  type Connection = [number, number];
+  export type StarConnection = [number, number];
 
   const {
     id,
@@ -32,11 +33,13 @@
     githubLink,
     status,
     mediaItems = [],
+    description,
     features = [],
+    technologies = [],
   } = $props<{
     id: number | undefined;
     stars: Star[];
-    connections: Connection[];
+    connections: StarConnection[];
     constellationColor?: string;
     starSize?: number;
     title: string;
@@ -46,17 +49,28 @@
     githubLink: string;
     status: 'completed' | 'ongoing';
     mediaItems: MediaItem[];
+    description: string;
     features?: string[];
+    technologies?: string[];
   }>();
 
-  let description: string = "# BIG ATLA\n\n ## Hello world \n\nThis is a cool project. Really cool, really nice, 10/10 project.\n\n* ELATLA\n\n* ELATLA2\n\n* ELATLA3\n\nq\n\nw\n\ne\n\nr\n\nt\n\ny";
+  const technologyMap: { [key: string]: { name: string, icon: string }} = {
+    shadcn: { name: 'Shadcn', icon: 'shadcn' },
+    react: { name: 'React', icon: 'react' },
+    typescript: { name: 'TypeScript', icon: 'typescript' },
+    indexeddb: { name: 'IndexedDB', icon: 'database' },
+  };
+
   let renderedDescriptionHtml = $state('');
 
   let containerRef: HTMLDivElement;
   let placeholderRef: HTMLDivElement;
 
+  let scrollY = $state(0);
+
   let placeholderBoundingRect = $state<DOMRect>();
-  let isExpanded = $state(true);
+  let isExpanded = $state(false);
+  let shouldTransitionTop = $state(false);
   let currentZIndex = $state(1); // Start with a default z-index (e.g., 1)
 
   let displayCarousel = $state(false);
@@ -130,6 +144,7 @@
       }
       console.log(`Clicked on constellation ${constellationId}`);
       isExpanded = !isExpanded;
+      if (isExpanded) shouldTransitionTop = true;
     }
   };
 
@@ -148,7 +163,7 @@
       starPositions.set(star.id, star);
     });
 
-    connections.forEach((connection: Connection) => {
+    connections.forEach((connection: StarConnection) => {
       const [startId, endId] = connection;
       const startStar = starPositions.get(startId);
       const endStar = starPositions.get(endId);
@@ -215,8 +230,14 @@
       };
       window.addEventListener('resize', handleResize);
 
+      const handleScroll = () => {
+        scrollY = window.scrollY;
+      };
+      window.addEventListener('scroll', handleScroll);
+
       onDestroy(() => {
         window.removeEventListener('resize', handleResize);
+        window.removeEventListener('scroll', handleScroll);
       });
     }
   });
@@ -244,14 +265,27 @@
   });
 
   // Function to handle the end of the transition
-  async function handleTransitionEnd(e: TransitionEvent) {
+  async function ontransitionend(e: TransitionEvent) {
     if (e.propertyName === 'width') {
-    if (!isExpanded) {
-      currentZIndex = 1; // Revert z-index when collapse transition is complete
-      displayCarousel = false;
-    } else {
-      displayCarousel = true;
+      if (!isExpanded) {
+        currentZIndex = 1; // Revert z-index when collapse transition is complete
+        displayCarousel = false;
+        shouldTransitionTop = false;
+      } else {
+        displayCarousel = true;
+      }
     }
+  }
+  
+  function onmouseenter() {
+    if (!isExpanded) {
+      containerRef.style.transform = 'translateY(-10px)';
+    }
+  }
+  
+  function onmouseleave() {
+    if (!isExpanded) {
+      containerRef.style.transform = 'translateY(0px)';
     }
   }
 </script>
@@ -281,20 +315,23 @@
 
 <div
   bind:this={containerRef}
-  class="fixed bg-black overflow-hidden select-none"
+  class="fixed bg-[var(--bg-color)] overflow-hidden select-none"
   style={browser && placeholderBoundingRect ? `
-    left: ${isExpanded ? `10%` : `${(placeholderBoundingRect.left || 0)}px`};
-    top: ${isExpanded ? `5%` : `${(placeholderBoundingRect.top || 0)}px`};
-    width: ${isExpanded ? '80%' : (placeholderBoundingRect.width || 0) + 'px'};
+    left: ${isExpanded ? `15%` : `${(placeholderBoundingRect.left || 0)}px`};
+    top: ${isExpanded
+      ? `5%`
+      : `${(placeholderBoundingRect.top - scrollY || 0)}px`
+    };
+    width: ${isExpanded ? '70%' : (placeholderBoundingRect.width || 0) + 'px'};
     height: ${isExpanded ? '90%' : (placeholderBoundingRect.height || 0) + 'px'};
     border: 2px solid ${constellationColor};
     box-sizing: border-box;
     z-index: ${currentZIndex};
-    transition: left 0.5s ease-in-out, top 0.5s ease-in-out, width 0.5s ease-in-out, height 0.5s ease-in-out, transform 0.25s ease-out, z-index 0.5s ease-in-out;
+    transition: ${shouldTransitionTop ? 'top 0.5s ease-in-out,' : ''} left 0.5s ease-in-out, width 0.5s ease-in-out, height 0.5s ease-in-out, transform 0.25s ease-out, z-index 0.5s ease-in-out;
   ` : ''}
-  ontransitionend={handleTransitionEnd}
-  onmouseenter={() => { if (!isExpanded) containerRef.style.transform = 'translateY(-10px)'; }}
-  onmouseleave={() => { if (!isExpanded) containerRef.style.transform = 'translateY(0px)'; }}
+  {ontransitionend}
+  {onmouseenter}
+  {onmouseleave}
   role="button"
   tabindex="0"
 >
@@ -342,7 +379,7 @@
         tabindex="0"
         onclick={(e) => onclick(e, id)}
         onkeydown={(e) => e.key === 'Enter' && onclick(e, id)}
-        class="px-8 py-4 w-full text-[var(--fg-color)]"
+        class="px-8 py-4 pb-8 w-full text-[var(--fg-color)]"
         style="color: {constellationColor};"
       >
         <div class="leading-none mb-2">
@@ -364,7 +401,7 @@
         {#if displayCarousel}
           <div 
             in:fade={{ duration: 250 }}
-            class="mx-50 my-10"
+            class="mx-30 my-10"
           >
             <Carousel media={mediaItems} />
           </div>
@@ -372,17 +409,48 @@
           <div class="h-142"></div>
         {/if}
         <div class="
-          min-w-full
+          min-w-full text-center
           prose prose-invert
           prose-h1:text-[3em] prose-h1:mb-0 prose-h1:mt-0
           prose-h2:text-[2em] prose-h2:mb-0 prose-h2:mt-0
-          prose-p:text-[1.5em] prose-p:text-[var(--fg-color)] prose-p:mb-0 prose-p:mt-0                                      /* Paragraphs */
+          prose-p:text-[1.5em] prose-p:text-[var(--fg-color)] prose-p:mb-0 prose-p:mt-0 prose-p:leading-8                                     /* Paragraphs */
           prose-ul:mt-0 prose-ul:mb-0 prose-ul:text-[var(--fg-color)]                 /* Lists */
           prose-li:text-[1em] prose-li:mb-0 prose-li:mt-0                                    /* List items */
           "
           id="description-div">
         </div>
-
+        {#if technologies}
+          <div class="text-[3em] font-bold">
+            Technologies
+          </div>
+          <div class="flex flex-row gap-4">
+            {#each technologies as technology}
+              {#if technologyMap[technology].icon}
+                <Badge
+                  name={technologyMap[technology].name}
+                  icon={technologyMap[technology].icon}
+                />
+              {:else}
+                <Badge
+                  name={technologyMap[technology].name}
+                />
+              {/if}
+            {/each}  
+          </div>
+        {/if}
+        {#if features}
+          <div class="text-[3em] font-bold">
+            Features
+          </div>
+          <div class="flex flex-col gap-4">
+            {#each features as feature}
+              <div class="flex flex-row gap-2 items-center">
+                <Icon className="ml-[-0.25em]" name="triangle-right-sm" size={16}/>
+                <span class="text-[1.5em] leading-none">{feature}</span>
+              </div>
+            {/each}
+          </div>
+        {/if}
       </div>
     </ScrollArea>
   {/if}
