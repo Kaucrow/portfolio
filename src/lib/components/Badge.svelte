@@ -17,7 +17,8 @@
 </script>
 
 <span
-  class="text-[{fgColor}] bg-[{bgColor}] flex flex-row gap-2 items-center text-[1.5em] px-2 py-1 leading-none {className}"
+  class="flex flex-row gap-2 items-center text-[1.5em] px-2 py-1 leading-none {className}"
+  style="color: {fgColor}; background-color: {bgColor};"
 >
   {#if icon}
     <Icon name={icon} color={fgColor} size={16}/>
