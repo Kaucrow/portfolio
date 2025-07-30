@@ -5,6 +5,8 @@
 
   import { Transition } from "$lib/engine/Transition";
 
+  import Terminal from "$lib/components/Terminal.svelte";
+
   let pageObjectsInitialized = false;
 
   $effect(() => {
@@ -38,8 +40,5 @@
 </script>
 
 <div class="flex items-center justify-center w-full min-h-100">
-  <div class="text-8xl text-center justify-center w-[50%] min-h-100 p-4"
-      style="background-color: var(--fg-color);">
-    <span>About Me</span>
-  </div>
+  <Terminal lines={["elatla", "gigachad unparalleled"]} typingSpeed={100} />
 </div>
