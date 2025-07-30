@@ -311,8 +311,6 @@
   </div>
 </div>
 
----
-
 <div
   bind:this={containerRef}
   class="fixed bg-[var(--bg-color)] overflow-hidden select-none"

@@ -129,7 +129,7 @@
   $: patternSize, maxDisplacement, rotationEnabled, globalScale, starPatternImage, drawBackground();
 </script>
 
-<div class="absolute inset-0 overflow-hidden -z-10">
+<div class="fixed inset-0 overflow-hidden -z-10">
   <canvas
     bind:this={canvas}
     class="block w-full h-full"

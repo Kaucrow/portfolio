@@ -7,6 +7,7 @@
   
   import Constellation, { type Star, type StarConnection } from "$lib/components/Constellation.svelte";
   import StarsBackground from "$lib/components/StarsBackground.svelte";
+  import WindowScrollArea from "$lib/components/WindowScrollArea.svelte";
   import { type MediaItem } from "$lib/components/Carousel.svelte";
 
   let pageObjectsInitialized = false;
@@ -139,13 +140,15 @@
   );
 </script>
 
-<div class="relative w-full h-full overflow-hidden">
-  <StarsBackground />
+<StarsBackground />
+<WindowScrollArea class="z-10" />
 
-  <div class="grid grid-cols-2 w-full h-full relative"> {#each constellationsData as constellation, i}
+<div class="relative h-screen w-full">
+  <div class="grid grid-cols-2 min-h-full w-full relative">
+    {#each constellationsData as constellation, i}
       <div
         class="
-          flex justify-center items-start mt-10
+          flex justify-center items-start mt-10 z-10
           {i % 2 === 0 ? 'col-start-2 justify-self-start' : 'col-start-1 justify-self-end'}
           py-10
           w-full max-w-[35vw]"

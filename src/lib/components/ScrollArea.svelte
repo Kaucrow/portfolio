@@ -31,7 +31,7 @@
   let scrollThumbHeight = $state(0);
   let scrollThumbTop = $state(0);
 
-  // New state for drag functionality
+  // Drag functionality
   let isDragging = $state(false);
   let startY = $state(0); // Mouse Y position when drag starts
   let startScrollTop = $state(0); // Content scrollTop when drag starts

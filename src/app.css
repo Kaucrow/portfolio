@@ -22,12 +22,17 @@
   --fg-color: #fff1e8;
 }
 
+body {
+  height: 100%;
+}
+
 html {
   font-family: 'Monogram', sans-serif;
   background-color: var(--bg-color);
   -webkit-font-smoothing: none; /* For WebKit browsers (Chrome, Safari) */
   -moz-osx-font-smoothing: grayscale; /* For macOS Firefox */
   font-smooth: never;
+  height: 100%;
   padding: 0;
   margin: 0;
   overflow-x: hidden;
