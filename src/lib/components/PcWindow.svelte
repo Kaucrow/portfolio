@@ -1,5 +1,6 @@
 <script lang="ts">
   import { type Snippet, onMount } from 'svelte';
+  import { globalZIndex } from '$lib/stores/pcWindowStore';
   import windowControlsImg from '$lib/assets/window_controls.png';
 
   const {
@@ -18,38 +19,43 @@
 
   let offsetX = 0;
   let offsetY = 0;
-  let posX = $state(0);
-  let posY = $state(0);
+  let posX = $state(x);
+  let posY = $state(y);
   let isDragging = $state(false);
+  let windowRef: HTMLDivElement;
+  let currentZIndex = $state(0);
+
+  function bringToFront() {
+    globalZIndex.update(n => {
+      const newZ = n + 1;
+      currentZIndex = newZ;
+      windowRef.style.zIndex = newZ.toString();
+      return newZ;
+    });
+  }
 
   function startDrag(e: MouseEvent) {
-    const target = e.currentTarget as HTMLElement;
-    const rect = target.getBoundingClientRect();
-    
+    const rect = windowRef.getBoundingClientRect();
+    if (!rect) return;
+
     offsetX = e.clientX - rect.left;
     offsetY = e.clientY - rect.top;
     isDragging = true;
     
-    // Store initial position
-    posX = rect.left;
-    posY = rect.top;
+    // Bring to front when drag starts
+    bringToFront();
     
-    // Prevent text selection during drag
     document.body.style.userSelect = 'none';
   }
 
   function onDrag(e: MouseEvent) {
-    if (!isDragging) return;
+    if (!isDragging || !windowRef) return;
     
     posX = e.clientX - offsetX;
     posY = e.clientY - offsetY;
     
-    // Update window position
-    const windowEl = document.querySelector('.pc-window') as HTMLElement;
-    if (windowEl) {
-      windowEl.style.left = `${posX}px`;
-      windowEl.style.top = `${posY}px`;
-    }
+    windowRef.style.left = `${posX}px`;
+    windowRef.style.top = `${posY}px`;
   }
 
   function stopDrag() {
@@ -58,9 +64,9 @@
   }
 
   onMount(() => {
-    posX = x;
-    posY = y;
-
+    // Initialize z-index
+    bringToFront();
+    
     document.addEventListener('mousemove', onDrag);
     document.addEventListener('mouseup', stopDrag);
     
@@ -71,10 +77,14 @@
   });
 </script>
 
-<!-- Main Container -->
-<div 
-  class="pc-window absolute flex flex-col select-none bg-[var(--bg-color)] text-[var(--fg-color)] z-10 {customClass}"
-  style="left: {posX}px; top: {posY}px;"
+<div
+  bind:this={windowRef}
+  role="button"
+  tabindex="0"
+  class="absolute flex flex-col select-none bg-[var(--bg-color)] text-[var(--fg-color)] {customClass}"
+  style="left: {posX}px; top: {posY}px; z-index: {currentZIndex}"
+  onclick={bringToFront}
+  onkeypress={bringToFront}
 >
   <!-- Header -->
   <div 
@@ -92,7 +102,7 @@
   </div>
 
   <!-- Content -->
-  <div class="bg-[var(--bg-color)] text-[var(--fg-color)] border-2 border-b-12 border-[var(--fg-color)] text-[1.5em] py-2 px-4">
+  <div class="bg-[var(--bg-color)] text-[var(--fg-color)] border-2 border-b-12 border-[var(--fg-color)] py-2 px-4">
     {@render children?.()}
   </div>
 </div>

@@ -5,12 +5,20 @@
 
   const {
     lines,
+    name,
     typingSpeed = 30,
     caretBlinkSpeed = 500,
+    x = 0,
+    y = 0,
+    class: customClass = '',
   } = $props<{
     lines: string[];
+    name?: string;
     typingSpeed?: number;
     caretBlinkSpeed?: number;
+    x?: number;
+    y?: number;
+    class?: string;
   }>();
 
   let displayedLines: { text: string; fullyTyped: boolean }[] = $state([]);
@@ -63,9 +71,9 @@
   }
 </script>
 
-<PcWindow name="About Me" x={300} y={100}>
+<PcWindow {name} {x} {y} class={customClass}>
   {#each displayedLines as line, i}
-    <div class="whitespace-pre-wrap break-words">
+    <div class="whitespace-pre-wrap break-words text-[1.5em]">
       <span class="whitespace-pre-wrap">kaucrow@portfolio:/about-me$ {line.text}
         {#if (i === currentLineIndex && !line.fullyTyped) || 
             (i === displayedLines.length - 1 && line.fullyTyped)}
