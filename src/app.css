@@ -4,7 +4,7 @@
 
 @font-face {
   font-family: 'Monogram';
-  src: url('/fonts/monogram.ttf') format('truetype');
+  src: url('/fonts/monogram.woff2') format('woff2');
   font-display: swap;
 }
 
@@ -29,6 +29,7 @@ body {
 html {
   font-family: 'Monogram', sans-serif;
   background-color: var(--bg-color);
+  text-rendering: optimizeSpeed;
   -webkit-font-smoothing: none; /* For WebKit browsers (Chrome, Safari) */
   -moz-osx-font-smoothing: grayscale; /* For macOS Firefox */
   font-smooth: never;
