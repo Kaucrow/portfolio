@@ -2,7 +2,6 @@
 	import { onDestroy, onMount } from "svelte";
 
   import { useScene } from "$lib/engine/Scene.svelte";
-  import { Transition } from "$lib/engine/Transition";
 
   const { sceneState, beginSceneTransition } = useScene();
 
@@ -45,31 +44,27 @@
   });
 
   $effect(() => {
-      if (
-        !sceneState.isInitialized ||
-        !sceneState.room ||
-        !sceneState.camera ||
-        sceneState.camera.globalScale === 0 ||
-        pageObjectsInitialized)
-      {
-        return;
-      }
-
-      pageObjectsInitialized = true;
-
-      (async () => {
-        if (!sceneState.camera || !sceneState.room) return;
-
-        sceneState.room.clearObjects();
-        sceneState.room.clearTransition();
-
-        beginSceneTransition(
-            new Transition('fromLeft', sceneState.camera, () => {
-          })
-        );
-      })();
+    if (
+      !sceneState.isInitialized ||
+      !sceneState.room ||
+      !sceneState.camera ||
+      sceneState.camera.globalScale === 0 ||
+      pageObjectsInitialized)
+    {
+      return;
     }
-  );
+
+    pageObjectsInitialized = true;
+
+    (async () => {
+      if (!sceneState.camera || !sceneState.room) return;
+
+      sceneState.room.clearObjects();
+      sceneState.room.clearTransition();
+
+      beginSceneTransition('fromLeft');
+    })();
+  });
 
   function formatTime(date: Date) {
     return date.toLocaleTimeString('en-US', {

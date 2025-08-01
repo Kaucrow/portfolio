@@ -1,15 +1,21 @@
 import type { Camera } from "./Camera.svelte";
 import { Container } from "./Container";
-import type { Transition } from "./Transition";
+import { type Dir, Transition } from "./Transition";
 
 export class Room {
   private rootContainer: Container;
-  private activeTransition: Transition | null;
+  private transition: Transition;
 
-  constructor(public width: number, public height: number) {
+  constructor(
+    private ctx: CanvasRenderingContext2D,
+    private camera: Camera,
+    public width: number,
+    public height: number
+  ) {
     // Initialize a root container. Its (0,0) is effectively the world origin.
     this.rootContainer = new Container(0, 0);
-    this.activeTransition = null;
+
+    this.transition = new Transition(ctx, camera);
   }
 
   // Method to get the root container, so one can add objects to it from outside
@@ -17,27 +23,29 @@ export class Room {
     return this.rootContainer;
   }
 
-  beginTransition(transition: Transition) {
-    if (this.activeTransition) return;
-
-    this.activeTransition = transition;
+  clearTransition() {
+    this.transition.clear();
   }
 
-  clearTransition() {
-    this.activeTransition = null;
+  configureTransition(dir: Dir, onComplete?: Function, scrollSpeed?: number) {
+    this.transition.configure(dir, onComplete, scrollSpeed);
+  }
+
+  beginTransition() {
+    this.transition.begin();
   }
 
   clearObjects() {
     this.rootContainer.children = [];
   }
 
-  update(camera: Camera, deltaTime: number) {
-    this.activeTransition?.update(camera, deltaTime);
+  update(deltaTime: number) {
+    this.transition.update(deltaTime);
   }
 
-  draw(ctx: CanvasRenderingContext2D, camera: Camera) {
+  draw() {
     // The root container's "parent" is the world origin, so parentWorldX/Y are 0
-    this.rootContainer.draw(ctx, camera, 0, 0);
-    this.activeTransition?.draw(ctx, camera);
+    this.rootContainer.draw(this.ctx, this.camera, 0, 0);
+    this.transition.draw();
   }
 }

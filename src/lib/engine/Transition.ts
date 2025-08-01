@@ -1,4 +1,4 @@
-type Dir = 'intoLeft' | 'fromLeft' | 'intoRight' | 'fromRight';
+export type Dir = 'intoLeft' | 'fromLeft' | 'intoRight' | 'fromRight';
 
 import { Sprite } from './Sprite';
 import type { Camera } from './Camera.svelte';
@@ -9,7 +9,7 @@ import ditherLightImg from '$lib/assets/dither_light.png';
 export class Transition {
   ditherHeavySpr: Sprite;
   ditherLightSpr: Sprite;
-  dir: Dir;
+  dir: Dir | undefined;
   scrollSpeed: number;
   scrollX: number = 0;
   onComplete: Function;
@@ -19,12 +19,11 @@ export class Transition {
   private loadedSpritesCount: number = 0; // To track when both sprites are loaded
 
   constructor(
-    dir: Dir,
+    private ctx: CanvasRenderingContext2D,
     private camera: Camera, // Store camera for use in init and pattern creation
     onComplete: Function = () => {},
     scrollSpeed: number = 10,
   ) {
-    this.dir = dir;
     this.scrollSpeed = scrollSpeed;
     this.onComplete = onComplete;
 
@@ -37,6 +36,32 @@ export class Transition {
       this.loadedSpritesCount++;
       this.checkAllSpritesLoaded();
     });
+  }
+
+  clear() {
+    this.paused = true;
+    this.dir = undefined;
+    this.scrollX = 0;
+    this.onComplete = () => {};
+  }
+
+  configure(
+    dir: Dir,
+    onComplete: Function = () => {},
+    scrollSpeed: number = 10
+  ) {
+    this.clear();
+    this.dir = dir;
+    this.onComplete = onComplete;
+    this.scrollSpeed = scrollSpeed;
+
+    // Reinitialize based on new configuration
+    this.checkAllSpritesLoaded();
+  }
+
+  begin() {
+    if (!this.dir) throw new Error("The transition hasn't been configured.");
+    this.paused = false;
   }
 
   // Checks if both dither sprites have finished loading
@@ -56,11 +81,56 @@ export class Transition {
           this.scrollX = this.camera.scale(this.camera.viewportWidth); // Starts covering from the right edge of the viewport
           break;
       }
-      this.paused = false; // Transition is ready to begin
+
+      // Create the combined pattern once both dither images are loaded and `ctx` is available.
+      // This part is now conditional based on the direction and if the pattern needs recreation.
+      if (this.ditherPattern === null && this.ctx) {
+        // Create a temporary canvas to draw the combined dither pattern
+        const tempCanvas = document.createElement('canvas');
+        const tempCtx = tempCanvas.getContext('2d');
+
+        if (!tempCtx) {
+          console.warn("Could not get 2D context for temporary canvas.");
+          return;
+        }
+
+        // Calculate scaled dimensions for drawing onto the temporary canvas
+        const heavyScaledWidth = this.ditherHeavySpr.img.width * this.camera.globalScale;
+        const heavyScaledHeight = this.ditherHeavySpr.img.height * this.camera.globalScale;
+        const lightScaledWidth = this.ditherLightSpr.img.width * this.camera.globalScale;
+        const lightScaledHeight = this.ditherLightSpr.img.height * this.camera.globalScale;
+
+        // Set the temporary canvas dimensions to hold both images side-by-side
+        tempCanvas.width = heavyScaledWidth + lightScaledWidth;
+        tempCanvas.height = Math.max(heavyScaledHeight, lightScaledHeight); // Use max scaled height
+
+        // Draw dithers based on the direction, using calculated scaled dimensions
+        // Pattern logic:
+        // intoRight, fromLeft: [Heavy | Light]
+        // intoLeft, fromLeft: [Light | Heavy]
+        if (this.dir === 'intoRight' || this.dir === 'fromRight') {
+          tempCtx.imageSmoothingEnabled = false;
+          tempCtx.drawImage(this.ditherHeavySpr.img, 0, 0, heavyScaledWidth, heavyScaledHeight);
+          tempCtx.imageSmoothingEnabled = false; // Re-set for safety, though generally not needed
+          tempCtx.drawImage(this.ditherLightSpr.img, heavyScaledWidth, 0, lightScaledWidth, lightScaledHeight);
+        } else { // fromRight or intoLeft
+          tempCtx.imageSmoothingEnabled = false;
+          tempCtx.drawImage(this.ditherLightSpr.img, 0, 0, lightScaledWidth, lightScaledHeight);
+          tempCtx.imageSmoothingEnabled = false; // Re-set for safety
+          tempCtx.drawImage(this.ditherHeavySpr.img, lightScaledWidth, 0, heavyScaledWidth, heavyScaledHeight);
+        }
+
+        // Create the pattern from the temporary canvas
+        this.ditherPattern = this.ctx.createPattern(tempCanvas, 'repeat');
+        if (!this.ditherPattern) {
+          console.warn("Could not create combined dither pattern.");
+          return; // Cannot draw without a pattern
+        }
+      }
     }
   }
 
-  update(camera: Camera, deltaTime: number) {
+  update(deltaTime: number) {
     // Ensure both sprites are loaded before updating
     if (this.paused || !this.ditherHeavySpr.isLoaded || !this.ditherLightSpr.isLoaded) return;
 
@@ -72,7 +142,7 @@ export class Transition {
         this.scrollX += adjustedScrollSpeed;
         // The condition to complete should be when the leading edge of the combined pattern
         // has fully crossed the viewport.
-        if (this.scrollX >= camera.viewportWidth) {
+        if (this.scrollX >= this.camera.viewportWidth) {
           this.onComplete();
           this.paused = true;
         }
@@ -97,83 +167,37 @@ export class Transition {
     }
   }
 
-  draw(ctx: CanvasRenderingContext2D, camera: Camera) {
+  draw() {
     // Return early if not ready to draw (paused or images not loaded)
-    if (!this.ditherHeavySpr.isLoaded || !this.ditherLightSpr.isLoaded) return;
-
-    // Create the combined pattern once both dither images are loaded and `ctx` is available.
-    // This part is now conditional based on the direction and if the pattern needs recreation.
-    if (this.ditherPattern === null) {
-      // Create a temporary canvas to draw the combined dither pattern
-      const tempCanvas = document.createElement('canvas');
-      const tempCtx = tempCanvas.getContext('2d');
-
-      if (!tempCtx) {
-        console.warn("Could not get 2D context for temporary canvas.");
-        return;
-      }
-
-      // Calculate scaled dimensions for drawing onto the temporary canvas
-      const heavyScaledWidth = this.ditherHeavySpr.img.width * this.camera.globalScale;
-      const heavyScaledHeight = this.ditherHeavySpr.img.height * this.camera.globalScale;
-      const lightScaledWidth = this.ditherLightSpr.img.width * this.camera.globalScale;
-      const lightScaledHeight = this.ditherLightSpr.img.height * this.camera.globalScale;
-
-      // Set the temporary canvas dimensions to hold both images side-by-side
-      tempCanvas.width = heavyScaledWidth + lightScaledWidth;
-      tempCanvas.height = Math.max(heavyScaledHeight, lightScaledHeight); // Use max scaled height
-
-      // Draw dithers based on the direction, using calculated scaled dimensions
-      // Pattern logic:
-      // intoRight, fromLeft: [Heavy | Light]
-      // intoLeft, fromLeft: [Light | Heavy]
-      if (this.dir === 'intoRight' || this.dir === 'fromRight') {
-        tempCtx.imageSmoothingEnabled = false;
-        tempCtx.drawImage(this.ditherHeavySpr.img, 0, 0, heavyScaledWidth, heavyScaledHeight);
-        tempCtx.imageSmoothingEnabled = false; // Re-set for safety, though generally not needed
-        tempCtx.drawImage(this.ditherLightSpr.img, heavyScaledWidth, 0, lightScaledWidth, lightScaledHeight);
-      } else { // fromRight or intoLeft
-        tempCtx.imageSmoothingEnabled = false;
-        tempCtx.drawImage(this.ditherLightSpr.img, 0, 0, lightScaledWidth, lightScaledHeight);
-        tempCtx.imageSmoothingEnabled = false; // Re-set for safety
-        tempCtx.drawImage(this.ditherHeavySpr.img, lightScaledWidth, 0, heavyScaledWidth, heavyScaledHeight);
-      }
-
-      // Create the pattern from the temporary canvas
-      this.ditherPattern = ctx.createPattern(tempCanvas, 'repeat');
-      if (!this.ditherPattern) {
-        console.warn("Could not create combined dither pattern.");
-        return; // Cannot draw without a pattern
-      }
-    }
+    if (!this.ditherHeavySpr.isLoaded || !this.ditherLightSpr.isLoaded || !this.ditherPattern) return;
 
     // Use integer values to prevent sub-pixel gaps
     const scrollXInt = Math.round(this.scrollX);
     const combinedWidthInt = Math.round(this.combinedPatternWidth);
 
     // First fill the appropriate area with black
-    ctx.fillStyle = 'black';
+    this.ctx.fillStyle = 'black';
     switch (this.dir) {
       case 'intoRight':
       case 'fromRight':
-        ctx.fillRect(0, 0, scrollXInt, camera.viewportHeight);
+        this.ctx.fillRect(0, 0, scrollXInt, this.camera.viewportHeight);
         break;
       case 'intoLeft':
       case 'fromLeft':
-        ctx.fillRect(scrollXInt + combinedWidthInt, 0,
-                     camera.viewportWidth - (scrollXInt + combinedWidthInt),
-                     camera.viewportHeight);
+        this.ctx.fillRect(scrollXInt + combinedWidthInt, 0,
+                          this.camera.viewportWidth - (scrollXInt + combinedWidthInt),
+                          this.camera.viewportHeight);
         break;
     }
 
     // Draw the dither pattern
-    ctx.save();
+    this.ctx.save();
 
-    ctx.translate(scrollXInt, 0); // Translate the canvas context by the current scroll position
+    this.ctx.translate(scrollXInt, 0); // Translate the canvas context by the current scroll position
     // Fill exactly the area we want the pattern to appear in
-    ctx.fillStyle = this.ditherPattern;
-    ctx.fillRect(0, 0, combinedWidthInt, camera.viewportHeight);
+    this.ctx.fillStyle = this.ditherPattern;
+    this.ctx.fillRect(0, 0, combinedWidthInt, this.camera.viewportHeight);
 
-    ctx.restore(); // Restore the canvas context
+    this.ctx.restore(); // Restore the canvas context
   }
 }

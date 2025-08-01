@@ -1,10 +1,8 @@
 <script lang="ts">
   import { useScene } from "$lib/engine/Scene.svelte";
 
-  const { sceneState, addRoomObject, beginSceneTransition } = useScene();
+  const { sceneState, beginSceneTransition } = useScene();
 
-  import { Transition } from "$lib/engine/Transition";
-  
   import Constellation, { type Star, type StarConnection } from "$lib/components/Constellation.svelte";
   import StarsBackground from "$lib/components/StarsBackground.svelte";
   import WindowScrollArea from "$lib/components/WindowScrollArea.svelte";
@@ -113,31 +111,27 @@
   ];
 
   $effect(() => {
-      if (
-        !sceneState.isInitialized ||
-        !sceneState.room ||
-        !sceneState.camera ||
-        sceneState.camera.globalScale === 0 ||
-        pageObjectsInitialized)
-      {
-        return;
-      }
-
-      pageObjectsInitialized = true;
-
-      (async () => {
-        if (!sceneState.camera || !sceneState.room) return;
-
-        sceneState.room.clearObjects();
-        sceneState.room.clearTransition();
-
-        beginSceneTransition(
-            new Transition('fromLeft', sceneState.camera, () => {
-          })
-        );
-      })();
+    if (
+      !sceneState.isInitialized ||
+      !sceneState.room ||
+      !sceneState.camera ||
+      sceneState.camera.globalScale === 0 ||
+      pageObjectsInitialized)
+    {
+      return;
     }
-  );
+
+    pageObjectsInitialized = true;
+
+    (async () => {
+      if (!sceneState.camera || !sceneState.room) return;
+
+      sceneState.room.clearObjects();
+      sceneState.room.clearTransition();
+
+      beginSceneTransition('fromLeft');
+    })();
+  });
 </script>
 
 <StarsBackground />

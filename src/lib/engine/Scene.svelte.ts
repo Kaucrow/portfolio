@@ -1,5 +1,7 @@
 import { Camera } from '$lib/engine/Camera.svelte';
 import { Room } from '$lib/engine/Room';
+import { type Dir } from '$lib/engine/Transition';
+
 import borderImg from '$lib/assets/room_border.png';
 import { browser } from '$app/environment';
 
@@ -12,163 +14,131 @@ const sceneState = $state({
   lastResizeTimestamp: 0,
 });
 
-// Internal state for initialization (these remain internal to the module)
 let borderDimensions = { width: 0, height: 0 };
 let lastTime: DOMHighResTimeStamp = 0;
 let animationFrameId: number | null = null;
+let initialized = false; // Separate flag to track initialization
 
 export function useScene() {
-  // --- Core Initialization Effect ---
-  // This effect will run once when `sceneState.canvas` is first set
-  // and `sceneState.isInitialized` is false.
+  // --- Initialization (run once) ---
   $effect(() => {
-    // Only proceed if canvas is available and not already initialized
-    if (!sceneState.canvas || sceneState.isInitialized) {
-      return;
-    }
-
-    (async () => {
-      console.log('Attempting to initialize scene from useScene effect...');
+    if (initialized || !sceneState.canvas) return;
+    
+    console.log('Initializing scene...');
+    initialized = true;
+    
+    const init = async () => {
       sceneState.ctx = sceneState.canvas!.getContext('2d');
       if (!sceneState.ctx) throw new Error("Failed to get MainCanvas context");
       sceneState.ctx.imageSmoothingEnabled = false;
 
       sceneState.camera = new Camera(sceneState.canvas!.width, sceneState.canvas!.height);
-      sceneState.room = new Room(1920, 1080); // Assuming default room dimensions
 
-      let tempImage = new Image();
-      await new Promise<void>((resolve, reject) => {
-        tempImage.src = borderImg; // Use the imported asset directly
-        tempImage.onload = () => {
-          borderDimensions.width = tempImage.width;
-          borderDimensions.height = tempImage.height;
-          resolve();
-        };
-        tempImage.onerror = (e) => {
-          console.error(`Error loading border image from ${borderImg}: `, e);
-          reject(e);
-        };
-      });
+      try {
+        const tempImage = new Image();
+        await new Promise<void>((resolve, reject) => {
+          tempImage.src = borderImg;
+          tempImage.onload = () => {
+            borderDimensions.width = tempImage.width;
+            borderDimensions.height = tempImage.height;
+            resolve();
+          };
+          tempImage.onerror = reject;
+        });
 
-      // Perform the initial scale update
-      updateSceneScale();
-      lastTime = performance.now(); // Initialize lastTime for the animation loop
+        updateSceneScale();
+      } catch (error) {
+        console.error('Initialization failed:', error);
+        initialized = false; // Allow retry
+      }
 
+      sceneState.room = new Room(sceneState.ctx, sceneState.camera, 1920, 1080);
+        
+      lastTime = performance.now();
       sceneState.isInitialized = true;
-      console.log('Scene initialized.');
-    })();
+      console.log('Scene initialized successfully');
+    };
+
+    init().catch(console.error);
   });
 
-  // --- Animation Loop Effect ---
+  // --- Animation Loop ---
   $effect(() => {
-    // This effect's dependencies ensure it only runs once the scene is fully initialized.
-    if (!sceneState.isInitialized || !sceneState.ctx || !sceneState.room || !sceneState.camera || !sceneState.canvas) {
-      return;
-    }
+    if (!sceneState.isInitialized) return;
 
-    // Reset lastTime right when the loop is about to start for clean timing
     lastTime = performance.now();
-
     const loop = (currentTime: DOMHighResTimeStamp) => {
       const deltaTime = (currentTime - lastTime) / 1000;
       lastTime = currentTime;
 
-      sceneState.ctx!.clearRect(0, 0, sceneState.canvas!.width, sceneState.canvas!.height);
-      sceneState.room!.update(sceneState.camera!, deltaTime);
-      sceneState.room!.draw(sceneState.ctx!, sceneState.camera!);
+      sceneState.ctx?.clearRect(0, 0, sceneState.canvas!.width, sceneState.canvas!.height);
+      sceneState.room?.update(deltaTime);
+      sceneState.room?.draw();
 
       animationFrameId = requestAnimationFrame(loop);
     };
 
     animationFrameId = requestAnimationFrame(loop);
 
-    // Cleanup function: This runs when the effect is torn down (e.g., component unmounts)
     return () => {
-      if (animationFrameId !== null) {
+      if (animationFrameId) {
         cancelAnimationFrame(animationFrameId);
         animationFrameId = null;
       }
     };
   });
 
-  // --- Window Resize Effect ---
+  // --- Resize Handler ---
   $effect(() => {
-    // Ensure this only runs in the browser and after initialization
-    if (!browser || !sceneState.isInitialized || !sceneState.canvas) {
-      return;
-    }
+    if (!browser || !sceneState.isInitialized) return;
 
-    const handleWindowResize = () => {
+    const handleResize = () => {
       updateSceneScale();
       sceneState.lastResizeTimestamp = performance.now();
     };
 
-    window.addEventListener('resize', handleWindowResize);
-
-    // Cleanup function
-    return () => {
-      window.removeEventListener('resize', handleWindowResize);
-    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
   });
 
-  // --- Helper functions (remain internal to the module or returned by the hook) ---
-
-  // Update scene scale
+  // --- Helper Functions ---
   function updateSceneScale() {
     if (!sceneState.canvas || !borderDimensions.width || !borderDimensions.height) return;
 
-    const effectiveWindowWidth = window.innerWidth - (32 * 2);
+    const effectiveWindowWidth = window.innerWidth - 64;
     const effectiveWindowHeight = window.innerHeight - 196;
 
     const scaleFactorWidth = effectiveWindowWidth / borderDimensions.width;
     const scaleFactorHeight = effectiveWindowHeight / borderDimensions.height;
+    const newGlobalScale = Math.max(1, Math.floor(Math.min(scaleFactorWidth, scaleFactorHeight)));
 
-    let scale = Math.min(scaleFactorWidth, scaleFactorHeight);
-    let newGlobalScale = Math.floor(scale);
-    if (newGlobalScale <= 0) {
-      newGlobalScale = 1;
-    }
-
-    // Only update if the value has actually changed.
-    // Floating point comparison with epsilon
-    if (sceneState.camera) {
-      if (Math.abs(sceneState.camera.globalScale - newGlobalScale) > 0.0001) {
-        sceneState.camera.globalScale = newGlobalScale;
-      }
+    if (sceneState.camera && Math.abs(sceneState.camera.globalScale - newGlobalScale) > 0.0001) {
+      sceneState.camera.globalScale = newGlobalScale;
     }
 
     if (sceneState.camera && sceneState.canvas) {
-      // Only update if viewport dimensions have actually changed
-      if (sceneState.camera.viewportWidth !== sceneState.canvas.width || sceneState.camera.viewportHeight !== sceneState.canvas.height) {
-        sceneState.camera.setViewport(sceneState.canvas.width, sceneState.canvas.height);
-      }
+      sceneState.camera.setViewport(sceneState.canvas.width, sceneState.canvas.height);
     }
   }
 
-  // --- Public functions to be returned by the hook ---
+  // --- Public API ---
   const setCanvas = (canvasElement: HTMLCanvasElement) => {
+    if (sceneState.canvas === canvasElement) return;
     sceneState.canvas = canvasElement;
   };
 
   const addRoomObject = (obj: any) => {
-    if (sceneState.room) {
-      sceneState.room.getRootContainer().add(obj);
-    } else {
-      console.warn('Cannot add RoomObject: scene.room is not initialized.');
-    }
+    sceneState.room?.getRootContainer().add(obj);
   };
 
-  const beginSceneTransition = (transition: any) => {
-    if (sceneState.room) {
-      sceneState.room.beginTransition(transition);
-    } else {
-      console.warn('Cannot begin transition: scene.room is not initialized.');
-    }
+  const beginSceneTransition = (dir: Dir, onComplete?: Function, scrollSpeed?: number) => {
+    sceneState.room?.configureTransition(dir, onComplete, scrollSpeed);
+    sceneState.room?.beginTransition();
   };
 
   return {
     sceneState,
-    setCanvas, // Expose for +layout.svelte to call
+    setCanvas,
     addRoomObject,
     beginSceneTransition,
   };

@@ -4,7 +4,6 @@
   import { Line } from '$lib/engine/Line';
   import { RoomObject } from '$lib/engine/RoomObject';
   import { Sprite } from '$lib/engine/Sprite';
-  import { Transition } from '$lib/engine/Transition';
 
   // Import the hook and call it to get access to the shared state and functions
   import { useScene } from '$lib/engine/Scene.svelte';
@@ -73,73 +72,72 @@
 
   // --- Logic for Initializing Page-Specific Scene Elements ---
   $effect(() => {
-      if (
-        !sceneState.isInitialized ||
-        !sceneState.room ||
-        !sceneState.camera ||
-        sceneState.camera.globalScale === 0 ||
-        pageObjectsInitialized)
-      {
-        return;
+    if (
+      !sceneState.isInitialized ||
+      !sceneState.room ||
+      !sceneState.camera ||
+      sceneState.camera.globalScale === 0 ||
+      pageObjectsInitialized)
+    {
+      return;
+    }
+
+    pageObjectsInitialized = true;
+
+    (async () => {
+      if (!sceneState.camera || !sceneState.room) return;
+
+      sceneState.room.clearObjects();
+      sceneState.room.clearTransition();
+
+      border = new RoomObject(0, -30, new Sprite(roomBorderImg, sceneState.camera.globalScale));
+      desk = new RoomObject(-33, 52, new Sprite(deskImg, sceneState.camera.globalScale));
+      const pc = new RoomObject(-27, 34, new Sprite(pcImg, sceneState.camera.globalScale));
+      const pcShading = new RoomObject(-27, 54, new Sprite(pcShadingImg, sceneState.camera.globalScale));
+      const plantKaucrow = new RoomObject(62, 124, new Sprite(plantKaucrowImg, sceneState.camera.globalScale));
+      const staticObjects = new RoomObject(-11, -2, new Sprite(staticObjectsImg, sceneState.camera.globalScale));
+
+      await Promise.all([
+        border.sprite?.awaitLoad(),
+        desk.sprite?.awaitLoad(),
+        pcShading.sprite?.awaitLoad(),
+        plantKaucrow.sprite?.awaitLoad(),
+        staticObjects.sprite?.awaitLoad()
+      ]);
+
+      addRoomObject(border);
+      addRoomObject(desk);
+      addRoomObject(pc);
+      addRoomObject(pcShading);
+      addRoomObject(plantKaucrow);
+      addRoomObject(staticObjects);
+
+      if (desk.sprite) {
+        projectionLines.left = new Line();
+        projectionLines.middle = new Line();
+        projectionLines.right = new Line();
+        addRoomObject(projectionLines.left);
+        addRoomObject(projectionLines.middle);
+        addRoomObject(projectionLines.right);
       }
 
-      pageObjectsInitialized = true;
+      if (border.sprite) {
+        depthLines.topLeft = new Line();
+        depthLines.topRight = new Line();
+        depthLines.bottomRight = new Line();
+        depthLines.bottomLeft = new Line();
+        addRoomObject(depthLines.topLeft);
+        addRoomObject(depthLines.topRight);
+        addRoomObject(depthLines.bottomRight);
+        addRoomObject(depthLines.bottomLeft);
+      }
 
-      (async () => {
-        if (!sceneState.camera || !sceneState.room) return;
-
-        sceneState.room.clearObjects();
-        sceneState.room.clearTransition();
-
-        border = new RoomObject(0, -30, new Sprite(roomBorderImg, sceneState.camera.globalScale));
-        desk = new RoomObject(-33, 52, new Sprite(deskImg, sceneState.camera.globalScale));
-        const pc = new RoomObject(-27, 34, new Sprite(pcImg, sceneState.camera.globalScale));
-        const pcShading = new RoomObject(-27, 54, new Sprite(pcShadingImg, sceneState.camera.globalScale));
-        const plantKaucrow = new RoomObject(62, 124, new Sprite(plantKaucrowImg, sceneState.camera.globalScale));
-        const staticObjects = new RoomObject(-11, -2, new Sprite(staticObjectsImg, sceneState.camera.globalScale));
-
-        await Promise.all([
-          border.sprite?.awaitLoad(),
-          desk.sprite?.awaitLoad(),
-          pcShading.sprite?.awaitLoad(),
-          plantKaucrow.sprite?.awaitLoad(),
-          staticObjects.sprite?.awaitLoad()
-        ]);
-
-        addRoomObject(border);
-        addRoomObject(desk);
-        addRoomObject(pc);
-        addRoomObject(pcShading);
-        addRoomObject(plantKaucrow);
-        addRoomObject(staticObjects);
-
-        if (desk.sprite) {
-          projectionLines.left = new Line();
-          projectionLines.middle = new Line();
-          projectionLines.right = new Line();
-          addRoomObject(projectionLines.left);
-          addRoomObject(projectionLines.middle);
-          addRoomObject(projectionLines.right);
-        }
-
-        if (border.sprite) {
-          depthLines.topLeft = new Line();
-          depthLines.topRight = new Line();
-          depthLines.bottomRight = new Line();
-          depthLines.bottomLeft = new Line();
-          addRoomObject(depthLines.topLeft);
-          addRoomObject(depthLines.topRight);
-          addRoomObject(depthLines.bottomRight);
-          addRoomObject(depthLines.bottomLeft);
-        }
-
-        updateProjectionDivPos();
-        updateDialogueBoxPos();
-        updateProjectionLinesPos();
-        updateDepthLinesPos();
-      })();
-    }
-  );
+      updateProjectionDivPos();
+      updateDialogueBoxPos();
+      updateProjectionLinesPos();
+      updateDepthLinesPos();
+    })();
+  });
 
   // --- Reactive updates for positioning HTML overlays and scene lines ---
   $effect(() => {
@@ -220,21 +218,13 @@
 
   const onAboutMeClick = () => {
     if (sceneState.room && sceneState.camera && sceneState.camera.globalScale) {
-      beginSceneTransition(
-        new Transition('intoRight', sceneState.camera, () => {
-          goto('/about-me');
-        })
-      );
+      beginSceneTransition('intoRight', () => { goto('/about-me') });
     }
   };
 
   const onProjectsClick = () => {
     if (sceneState.room && sceneState.camera && sceneState.camera.globalScale) {
-      beginSceneTransition(
-        new Transition('intoRight', sceneState.camera, () => {
-          goto('/projects');
-        })
-      );
+      beginSceneTransition('intoRight', () => { goto('/projects') });
     }
   }
 </script>
