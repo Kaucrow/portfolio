@@ -86,7 +86,8 @@
 
 {#snippet image(src: string, size: number)}
   <img
-    class="pixelated h-[{size}px] w-auto"
+    class="pixelated w-auto"
+    style="height: {size}px;"
     {src}
     alt=""
   />
