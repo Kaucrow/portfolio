@@ -71,7 +71,7 @@
   let placeholderBoundingRect = $state<DOMRect>();
   let isExpanded = $state(false);
   let shouldTransitionTop = $state(false);
-  let currentZIndex = $state(1); // Start with a default z-index (e.g., 1)
+  let currentZIndex = $state(10); // Start with a default z-index
 
   let displayCarousel = $state(false);
 
@@ -268,7 +268,7 @@
   async function ontransitionend(e: TransitionEvent) {
     if (e.propertyName === 'width') {
       if (!isExpanded) {
-        currentZIndex = 1; // Revert z-index when collapse transition is complete
+        currentZIndex = 10; // Revert z-index when collapse transition is complete
         displayCarousel = false;
         shouldTransitionTop = false;
       } else {
@@ -292,7 +292,7 @@
 
 <div
   bind:this={placeholderRef}
-  class="relative inline-block invisible"
+  class="static inline-block invisible"
 >
   <div class="relative p-4" style="color: {constellationColor};">
     <div
@@ -325,7 +325,7 @@
     border: 2px solid ${constellationColor};
     box-sizing: border-box;
     z-index: ${currentZIndex};
-    transition: ${shouldTransitionTop ? 'top 0.5s ease-in-out,' : ''} left 0.5s ease-in-out, width 0.5s ease-in-out, height 0.5s ease-in-out, transform 0.25s ease-out, z-index 0.5s ease-in-out;
+    transition: ${shouldTransitionTop ? 'top 0.5s ease-in-out,' : ''} left 0.5s ease-in-out, width 0.5s ease-in-out, height 0.5s ease-in-out, transform 0.25s ease-out;
   ` : ''}
   {ontransitionend}
   {onmouseenter}

@@ -142,10 +142,11 @@
     {#each constellationsData as constellation, i}
       <div
         class="
-          flex justify-center items-start mt-10 z-10
+          relative flex justify-center items-start mt-10
           {i % 2 === 0 ? 'col-start-2 justify-self-start' : 'col-start-1 justify-self-end'}
           py-10
-          w-full max-w-[35vw]"
+          w-full max-w-[35vw]
+        "
       >
         <Constellation
           id={constellation.id}
