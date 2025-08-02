@@ -341,7 +341,7 @@
       tabindex="0"
       onclick={(e) => onclick(e, id)}
       onkeydown={(e) => e.key === 'Enter' && onclick(e, id)}
-      class="relative cursor-pointer w-full h-full"
+      class="relative cursor-default w-full h-full"
       style="color: {constellationColor};"
     >
       <canvas bind:this={mainCanvas} class="absolute inset-0 w-full h-full" aria-label="Constellation Canvas"></canvas>

@@ -2,6 +2,13 @@
 
 @plugin '@tailwindcss/typography';
 
+@theme {
+  --cursor-default: url("/src/lib/assets/cursor/default.png") 2 2, auto;
+  --cursor-pointer: url("/src/lib/assets/cursor/pointer.png") 2 2, auto;
+  --cursor-grab: url("/src/lib/assets/cursor/grab.png") 9 11, auto;
+  --cursor-grabbing: url("/src/lib/assets/cursor/grabbing.png") 9 11, auto;
+}
+
 @font-face {
   font-family: 'Monogram';
   src: url('/fonts/monogram.woff2') format('woff2');
@@ -27,6 +34,7 @@ body {
 }
 
 html {
+  cursor: url("/src/lib/assets/cursor/default.png") 2 2, auto;
   font-family: 'Monogram', sans-serif;
   background-color: var(--bg-color);
   text-rendering: optimizeSpeed;
@@ -37,6 +45,10 @@ html {
   padding: 0;
   margin: 0;
   overflow-x: hidden;
+}
+
+button, a {
+  cursor: url("/src/lib/assets/cursor/pointer.png") 2 2, auto;
 }
 
 canvas {

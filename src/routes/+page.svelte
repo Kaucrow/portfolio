@@ -233,7 +233,7 @@
   <div class="relative z-10 grid grid-rows-3 gap-3 pl-2 h-full w-full">
     <button class="text-left cursor-pointer" onclick={onAboutMeClick}>About me</button>
     <button class="text-left cursor-pointer" onclick={onProjectsClick}>Projects</button>
-    <button class="text-left">What's this?</button>
+    <button class="text-left cursor-pointer">What's this?</button>
   </div>
 </div>
 

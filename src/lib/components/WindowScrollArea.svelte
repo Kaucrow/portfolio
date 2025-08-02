@@ -162,8 +162,7 @@
         bind:this={scrollThumbRef}
         role="cell"
         tabindex="0"
-        class="absolute left-1/2 -translate-x-1/2 w-3/5 rounded-full cursor-grab"
-        class:grabbing={isDragging}
+        class="absolute left-1/2 -translate-x-1/2 w-3/5 rounded-full {isDragging ? 'cursor-grabbing' : 'cursor-grab'}"
         style="
           height: {scrollThumbHeight}px;
           top: {scrollThumbTop}px;
@@ -188,12 +187,5 @@
     scrollbar-width: none;
     /* For IE/Edge */
     -ms-overflow-style: none;
-  }
-
-  .cursor-grab {
-    cursor: grab;
-  }
-  .grabbing {
-    cursor: grabbing;
   }
 </style>

@@ -233,7 +233,7 @@
   <div
     role="button"
     tabindex="0"
-    class="absolute leading-[1.2] z-10 cursor-pointer"
+    class="absolute leading-[1.2] z-10 cursor-default"
     onclick={advanceDialogue}
     onkeydown={(e) => {
       // Trigger advanceDialogue if Enter or Space is pressed
