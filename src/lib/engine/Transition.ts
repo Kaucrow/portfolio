@@ -14,6 +14,7 @@ export class Transition {
   scrollX: number = 0;
   onComplete: Function;
   paused: boolean = true;
+  completed: boolean = false;
   private ditherPattern: CanvasPattern | null = null; // Property to store the created combined pattern
   private combinedPatternWidth: number = 0; // Stores the total width of the combined dither pattern
   private loadedSpritesCount: number = 0; // To track when both sprites are loaded
@@ -21,11 +22,9 @@ export class Transition {
   constructor(
     private ctx: CanvasRenderingContext2D,
     private camera: Camera, // Store camera for use in init and pattern creation
-    onComplete: Function = () => {},
-    scrollSpeed: number = 10,
   ) {
-    this.scrollSpeed = scrollSpeed;
-    this.onComplete = onComplete;
+    this.scrollSpeed = 10;
+    this.onComplete = () => {};
 
     this.ditherHeavySpr = new Sprite(ditherHeavyImg, camera.globalScale, () => {
       this.loadedSpritesCount++;
@@ -40,6 +39,7 @@ export class Transition {
 
   clear() {
     this.paused = true;
+    this.completed = false;
     this.dir = undefined;
     this.scrollX = 0;
     this.onComplete = () => {};
@@ -132,7 +132,7 @@ export class Transition {
 
   update(deltaTime: number) {
     // Ensure both sprites are loaded before updating
-    if (this.paused || !this.ditherHeavySpr.isLoaded || !this.ditherLightSpr.isLoaded) return;
+    if (this.paused || this.completed || !this.ditherPattern) return;
 
     const adjustedScrollSpeed = this.camera.scale(this.scrollSpeed)
 
@@ -144,7 +144,7 @@ export class Transition {
         // has fully crossed the viewport.
         if (this.scrollX >= this.camera.viewportWidth) {
           this.onComplete();
-          this.paused = true;
+          this.completed = true;
         }
         // Ensure scrollX is an odd number to prevent sub-pixel issues if it lands on an even number
         if (this.scrollX % 2 === 0) {
@@ -169,7 +169,7 @@ export class Transition {
 
   draw() {
     // Return early if not ready to draw (paused or images not loaded)
-    if (!this.ditherHeavySpr.isLoaded || !this.ditherLightSpr.isLoaded || !this.ditherPattern) return;
+    if (this.paused || !this.ditherPattern) return;
 
     // Use integer values to prevent sub-pixel gaps
     const scrollXInt = Math.round(this.scrollX);
