@@ -76,6 +76,7 @@
 
   onDestroy(() => {
     clearInterval(timeInterval);
+    document.documentElement.style.overflow = '';
   });
 </script>
 

@@ -34,7 +34,7 @@
   function updateScrollbar() {
     if (!browser) return;
 
-    const scrollHeight = document.body.scrollHeight;
+    const scrollHeight = document.documentElement.scrollHeight;
     const clientHeight = window.innerHeight;
     const scrollTop = window.scrollY;
 
@@ -86,7 +86,7 @@
 
     const deltaY = event.clientY - startY;
     const trackHeight = scrollTrackRef.clientHeight;
-    const scrollHeight = document.body.scrollHeight;
+    const scrollHeight = document.documentElement.scrollHeight;
 
     // Calculate new scroll position
     const scrollRatio = scrollHeight / trackHeight;
@@ -113,7 +113,7 @@
     const newScrollTop = window.scrollY + (clickY < thumbCenter ? -scrollAmount : scrollAmount);
 
     window.scrollTo({
-      top: Math.max(0, Math.min(newScrollTop, document.body.scrollHeight - window.innerHeight)),
+      top: Math.max(0, Math.min(newScrollTop, document.documentElement.scrollHeight - window.innerHeight)),
       behavior: 'smooth'
     });
   }
