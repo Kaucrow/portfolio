@@ -59,6 +59,10 @@
     react: { name: 'React', icon: 'react' },
     typescript: { name: 'TypeScript', icon: 'typescript' },
     indexeddb: { name: 'IndexedDB', icon: 'database' },
+    firebase: { name: 'Firebase', icon: '' },
+    cpp: { name: 'C++', icon: '' },
+    opengl: { name: 'OpenGL', icon: '' },
+    rust: { name: 'Rust', icon: '' },
   };
 
   let renderedDescriptionHtml = $state('');
@@ -341,7 +345,7 @@
       tabindex="0"
       onclick={(e) => onclick(e, id)}
       onkeydown={(e) => e.key === 'Enter' && onclick(e, id)}
-      class="relative cursor-default w-full h-full"
+      class="relative cursor-pointer w-full h-full"
       style="color: {constellationColor};"
     >
       <canvas bind:this={mainCanvas} class="absolute inset-0 w-full h-full" aria-label="Constellation Canvas"></canvas>

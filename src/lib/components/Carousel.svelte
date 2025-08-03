@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onDestroy, onMount } from 'svelte';
   import { Tween } from 'svelte/motion';
   import { cubicOut } from 'svelte/easing';
   import Icon from './Icon.svelte';
@@ -24,6 +25,7 @@
   let carouselWidth = $state(0);
   let previewWidth = $state(120);
   let previewContainerWidth = $state(0);
+  let isFullscreen = $state(false);
 
   const translateX = new Tween(0, {
     duration: duration,
@@ -64,6 +66,22 @@
   function scrollToIndex(index: number): void {
     currentIndex = index;
   }
+
+  function handleFullscreenChange() {
+    if (document.fullscreenElement) {
+      isFullscreen = true;
+    } else {
+      isFullscreen = false;
+    }
+  }
+
+  onMount(() => {
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+  });
+
+  onDestroy(() => {
+    document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  });
 </script>
 
 <svelte:window on:keydown={handleKeydown} />
@@ -89,7 +107,7 @@
               controls={item.controls !== false}
               muted={true}
               playsinline={true}
-              class="w-full h-full object-cover"
+              class="w-full h-full {isFullscreen ? '' : 'object-cover'}"
             >
               Your browser does not support the video tag.
             </video>
@@ -117,7 +135,7 @@
     >
       <div
         class="flex h-full items-center gap-2"
-        style="transform: translateX({previewTranslateX.current}px);"
+        style="transform: translateX({previewTranslateX.current - 15}px);"
       >
         {#each media as item, i}
           <button

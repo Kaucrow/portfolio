@@ -63,8 +63,8 @@
     style: "",
     dialogues: {
       intro: [
-        "*Craw!* (Hello!)",
-        "*Craww!* (Welcome to my portfolio! owo)"
+        "*Craw!* (Hello! I'm Javier!)",
+        "*Craww!* (Welcome to my portfolio!)"
       ]
     },
     currentDialogueId: 'intro',
